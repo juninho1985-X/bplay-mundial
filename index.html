@@ -443,6 +443,42 @@
     .editor-match-title { font-size: 13px; }
     .alert-row { padding: 10px 12px; }
   }
+
+  /* ── Dashboard ── */
+  .dash-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 20px; }
+  .dash-card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 16px 18px; }
+  .dash-card-title { font-size: 11px; font-weight: 500; color: var(--text-muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 10px; }
+  .dash-big-num { font-size: 36px; font-weight: 700; color: var(--bp-lime); line-height: 1; }
+  .dash-sub { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+  .dash-progress-wrap { margin-top: 10px; }
+  .dash-progress-bar { height: 6px; border-radius: 3px; background: var(--border); overflow: hidden; margin-bottom: 4px; }
+  .dash-progress-fill { height: 100%; border-radius: 3px; transition: width .6s ease; }
+  .dash-progress-label { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); }
+  .dash-chart-wrap { display: flex; flex-direction: column; gap: 8px; }
+  .dash-bar-row { display: flex; align-items: center; gap: 8px; }
+  .dash-bar-label { font-size: 12px; color: var(--text-muted); width: 130px; flex-shrink: 0; }
+  .dash-bar-track { flex: 1; height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
+  .dash-bar-fill { height: 100%; border-radius: 4px; transition: width .6s ease; }
+  .dash-bar-val { font-size: 12px; font-weight: 500; color: var(--text); min-width: 28px; text-align: right; }
+  .dash-donut-wrap { display: flex; align-items: center; gap: 16px; margin-top: 4px; }
+  .dash-donut { position: relative; flex-shrink: 0; }
+  .dash-donut svg { transform: rotate(-90deg); }
+  .dash-donut-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .dash-donut-pct { font-size: 18px; font-weight: 700; color: var(--bp-lime); }
+  .dash-donut-lbl { font-size: 9px; color: var(--text-muted); }
+  .dash-legend { display: flex; flex-direction: column; gap: 6px; }
+  .dash-legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted); }
+  .dash-legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .dash-section-title { font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 12px; }
+  .dash-pending-list { display: flex; flex-direction: column; gap: 6px; max-height: 240px; overflow-y: auto; }
+  .dash-pending-item { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: var(--bg-surface); border-radius: var(--radius); font-size: 12px; }
+  .dash-pending-match { flex: 1; color: var(--text); }
+  .dash-pending-date { color: var(--text-muted); white-space: nowrap; }
+  .dash-pending-edit { font-size: 11px; color: var(--bp-lime); cursor: pointer; background: none; border: none; padding: 0; }
+  @media (max-width: 768px) {
+    .dash-grid { grid-template-columns: 1fr; }
+    .dash-bar-label { width: 90px; font-size: 11px; }
+  }
 </style>
 <!-- SheetJS for Excel export -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -465,6 +501,7 @@
     <button class="nav-tab active" onclick="switchView('timeline', this)">Línea de tiempo</button>
     <button class="nav-tab" onclick="switchView('editor', this)">Editor de combos</button>
     <button class="nav-tab" id="alert-tab" onclick="switchView('alerts', this)">Alertas <span id="alert-badge" style="display:none;background:#E24B4A;color:#fff;font-size:10px;padding:1px 6px;border-radius:8px;margin-left:4px"></span></button>
+    <button class="nav-tab" onclick="switchView('dashboard', this)">Dashboard</button>
   </div>
   <div class="nav-actions">
     <button class="theme-toggle" id="theme-btn" onclick="toggleTheme()" title="Cambiar modo">🌙</button>
@@ -589,6 +626,11 @@
     </div>
     <div id="af-status" style="font-size:11px;color:var(--text-muted);margin-top:8px"></div>
   </div>
+</div>
+
+<!-- ═══════════════ DASHBOARD VIEW ═══════════════ -->
+<div id="view-dashboard" class="view">
+  <div id="dashboard-body"></div>
 </div>
 
 <!-- ═══════════════ ALERTS VIEW ═══════════════ -->
@@ -1227,6 +1269,7 @@ function saveCombo(){
   persist();
   buildSidebar();
   renderTimeline();
+  renderDashboard();
   const t=document.getElementById('editorToast');
   t.classList.add('show');
   setTimeout(()=>t.classList.remove('show'),2000);
@@ -1661,6 +1704,7 @@ function switchView(view,btn){
   }
   if(view==='timeline') renderTimeline();
   if(view==='alerts') renderAlerts();
+  if(view==='dashboard') renderDashboard();
 }
 
 function goEdit(id){
@@ -1967,6 +2011,140 @@ function renderScoreSection(id, container){
   });
 }
 
+// ── DASHBOARD ──
+function renderDashboard(){
+  const body = document.getElementById('dashboard-body');
+  if(!body) return;
+
+  const total = ALL.length;
+  const withCombo = ALL.filter(m => comboSize(m.id) > 0).length;
+  const pct = total > 0 ? Math.round((withCombo/total)*100) : 0;
+  const without = total - withCombo;
+
+  // Actions per category
+  const catTotals = {promo:0, push:0, boost:0, live:0};
+  const catLabels = {promo:'Promociones', push:'Push notifications', boost:'Cuotas potenciadas', live:'Live betting'};
+  const catColors = {promo:'#22C97A', push:'#8B7CF6', boost:'#F5A623', live:'#FF5C5C'};
+  ALL.forEach(m=>{
+    const c = combos[m.id]||{};
+    ['promo','push','boost','live'].forEach(t=>{ catTotals[t]+=(c[t]||[]).length; });
+  });
+  const maxCat = Math.max(...Object.values(catTotals), 1);
+  const totalActions = Object.values(catTotals).reduce((a,v)=>a+v,0);
+
+  // T&C stats — only matches within next 7 days
+  const tcMatches = ALL.filter(m=>{ const d=daysUntil(m.id); return d!==null&&d>=0&&d<=7; });
+  const tcSentCount = tcMatches.filter(m=>tcSent[m.id]).length;
+  const tcPending = tcMatches.length - tcSentCount;
+  const tcPct = tcMatches.length > 0 ? Math.round((tcSentCount/tcMatches.length)*100) : 100;
+
+  // Donut segments for combo coverage
+  const r=44, circ=2*Math.PI*r;
+  const filledDash = (pct/100)*circ;
+  const emptyDash  = circ - filledDash;
+
+  // T&C donut
+  const r2=44, circ2=2*Math.PI*r2;
+  const sentDash = (tcPct/100)*circ2;
+  const pendDash = circ2 - sentDash;
+
+  // Matches without combo list (next 14 days first)
+  const pendingMatches = ALL
+    .filter(m=>comboSize(m.id)===0)
+    .sort((a,b)=>{ const da=daysUntil(a.id)||999, db=daysUntil(b.id)||999; return da-db; })
+    .slice(0,10);
+
+  body.innerHTML = `
+    <div class="dash-grid">
+
+      <!-- Card 1: Combo coverage donut -->
+      <div class="dash-card">
+        <div class="dash-card-title">Cobertura de combos</div>
+        <div class="dash-donut-wrap">
+          <div class="dash-donut">
+            <svg width="108" height="108" viewBox="0 0 108 108">
+              <circle cx="54" cy="54" r="${r}" fill="none" stroke="var(--border)" stroke-width="10"/>
+              <circle cx="54" cy="54" r="${r}" fill="none" stroke="#04F77C" stroke-width="10"
+                stroke-dasharray="${filledDash.toFixed(1)} ${emptyDash.toFixed(1)}"
+                stroke-linecap="round"/>
+            </svg>
+            <div class="dash-donut-center">
+              <span class="dash-donut-pct">${pct}%</span>
+              <span class="dash-donut-lbl">cubiertos</span>
+            </div>
+          </div>
+          <div class="dash-legend">
+            <div class="dash-legend-item"><div class="dash-legend-dot" style="background:#04F77C"></div>${withCombo} con combo</div>
+            <div class="dash-legend-item"><div class="dash-legend-dot" style="background:var(--border)"></div>${without} sin combo</div>
+            <div class="dash-legend-item" style="margin-top:4px;color:var(--text);font-weight:500">${total} partidos totales</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 2: Actions by category -->
+      <div class="dash-card">
+        <div class="dash-card-title">Acciones por categoría</div>
+        <div class="dash-chart-wrap" style="margin-top:6px">
+          ${['promo','push','boost','live'].map(t=>`
+            <div class="dash-bar-row">
+              <div class="dash-bar-label">${catLabels[t]}</div>
+              <div class="dash-bar-track">
+                <div class="dash-bar-fill" style="width:${maxCat>0?Math.round((catTotals[t]/maxCat)*100):0}%;background:${catColors[t]}"></div>
+              </div>
+              <div class="dash-bar-val">${catTotals[t]}</div>
+            </div>`).join('')}
+          <div style="margin-top:8px;font-size:11px;color:var(--text-muted)">${totalActions} acciones totales</div>
+        </div>
+      </div>
+
+      <!-- Card 3: T&C status donut -->
+      <div class="dash-card">
+        <div class="dash-card-title">T&C próximos 7 días</div>
+        ${tcMatches.length === 0
+          ? `<div class="dash-sub" style="margin-top:12px">No hay partidos en los próximos 7 días.</div>`
+          : `<div class="dash-donut-wrap">
+            <div class="dash-donut">
+              <svg width="108" height="108" viewBox="0 0 108 108">
+                <circle cx="54" cy="54" r="${r2}" fill="none" stroke="var(--border)" stroke-width="10"/>
+                <circle cx="54" cy="54" r="${r2}" fill="none" stroke="#04F77C" stroke-width="10"
+                  stroke-dasharray="${sentDash.toFixed(1)} ${pendDash.toFixed(1)}"
+                  stroke-linecap="round"/>
+              </svg>
+              <div class="dash-donut-center">
+                <span class="dash-donut-pct">${tcPct}%</span>
+                <span class="dash-donut-lbl">enviados</span>
+              </div>
+            </div>
+            <div class="dash-legend">
+              <div class="dash-legend-item"><div class="dash-legend-dot" style="background:#04F77C"></div>${tcSentCount} enviados</div>
+              <div class="dash-legend-item"><div class="dash-legend-dot" style="background:var(--coral)"></div>${tcPending} pendientes</div>
+              <div class="dash-legend-item" style="margin-top:4px;color:var(--text);font-weight:500">${tcMatches.length} partidos totales</div>
+            </div>
+          </div>`
+        }
+      </div>
+    </div>
+
+    <!-- Pending combos list -->
+    ${pendingMatches.length > 0 ? `
+    <div class="dash-card">
+      <div class="dash-section-title">Partidos sin combo asignado <span style="color:var(--text-muted);font-weight:400;font-size:12px">(${without} total · mostrando los más próximos)</span></div>
+      <div class="dash-pending-list">
+        ${pendingMatches.map(m=>{
+          const days = daysUntil(m.id);
+          const urgency = days !== null && days <= 3 ? 'color:var(--coral)' : days !== null && days <= 7 ? 'color:var(--amber)' : 'color:var(--text-muted)';
+          const daysLabel = days === null ? '' : days === 0 ? 'Hoy' : days === 1 ? 'Mañana' : `${days}d`;
+          return `<div class="dash-pending-item">
+            <span class="dash-pending-match">${m.t}</span>
+            <span class="dash-pending-date" style="${urgency}">${m.day}${daysLabel?' · '+daysLabel:''}</span>
+            <button class="dash-pending-edit" onclick="goEdit('${m.id}')">Asignar →</button>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>` : `<div class="dash-card" style="text-align:center;padding:24px"><span style="font-size:24px">🎉</span><div style="margin-top:8px;font-size:13px;color:var(--text-muted)">Todos los partidos tienen combo asignado.</div></div>`}
+  `;
+}
+
 // ── SETTINGS MENU ──
 function toggleSettings(){
   const btn = document.getElementById('settings-btn');
@@ -2001,7 +2179,7 @@ function initTheme(){
 }
 
 // Auto-refresh status (live/pending/finished) every 30s
-setInterval(()=>{ renderTimeline(); renderAlerts(); }, 30000);
+setInterval(()=>{ renderTimeline(); renderAlerts(); renderDashboard(); }, 30000);
 // Boot — Firebase listeners or local fallback
 initTheme();
 load();
