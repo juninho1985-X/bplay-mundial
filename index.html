@@ -334,6 +334,106 @@
     .view { display: block !important; }
     body { background: #fff; }
   }
+
+  /* ══════════════════════════════════════
+     RESPONSIVE — Mobile first
+  ══════════════════════════════════════ */
+  @media (max-width: 768px) {
+
+    /* ── Nav ── */
+    .nav { padding: 0 12px; height: auto; min-height: 52px; flex-wrap: wrap; gap: 6px; padding-top: 8px; padding-bottom: 8px; }
+    .nav-brand { flex: 1; min-width: 0; }
+    .nav-title { font-size: 12px; }
+    .nav-subtitle { display: none; }
+    .nav-tabs { width: 100%; order: 3; gap: 2px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
+    .nav-tabs::-webkit-scrollbar { display: none; }
+    .nav-tab { font-size: 12px; padding: 5px 10px; white-space: nowrap; flex-shrink: 0; }
+    .nav-actions { gap: 6px; }
+    .theme-toggle { font-size: 14px; padding: 3px 6px; }
+    #sync-status { display: none; }
+
+    /* ── Views ── */
+    .view { padding: 12px; }
+
+    /* ── Timeline ── */
+    .tl-header { flex-direction: column; align-items: flex-start; gap: 8px; margin-bottom: 12px; }
+    .stats-row { gap: 6px; }
+    .stat-chip { font-size: 12px; padding: 6px 10px; }
+    .tl-filters { gap: 4px; flex-wrap: wrap; }
+    .filter-btn { font-size: 11px; padding: 4px 10px; }
+    .phase-header { flex-wrap: wrap; gap: 6px; }
+    .phase-name { font-size: 13px; }
+    .tl-strip { padding-left: 14px; }
+    .tl-card { padding: 10px 12px; }
+    .tl-card-top { flex-direction: column; gap: 6px; }
+    .tl-right { justify-content: flex-start; flex-wrap: wrap; }
+    .tl-teams { font-size: 13px; }
+    .tl-date { font-size: 11px; }
+
+    /* ── Score section ── */
+    .match-score { padding: 8px 10px; gap: 6px; }
+    .match-score .team-name { max-width: 70px; font-size: 11px; }
+    .match-score .score-num { font-size: 18px; }
+
+    /* ── Odds ── */
+    .odds-grid { grid-template-columns: 1fr 1fr 1fr; gap: 4px; }
+    .odds-cell .ov { font-size: 13px; }
+    .odds-cell .ol { font-size: 9px; }
+    .odds-bk-row { font-size: 11px; }
+    .odds-bk-val { min-width: 28px; }
+    .odds-tab { font-size: 10px; padding: 3px 7px; }
+
+    /* ── Editor ── */
+    .editor-layout { grid-template-columns: 1fr; }
+    .editor-sidebar { max-height: 220px; overflow: hidden; }
+    .match-list { max-height: 160px; }
+    .action-blocks { grid-template-columns: 1fr; }
+    .editor-card { padding: 10px 12px; }
+    .editor-match-title { font-size: 14px; }
+    .combo-summary { padding: 10px 12px; }
+    .combo-sum-header { flex-direction: column; align-items: flex-start; gap: 8px; }
+    .combo-actions { width: 100%; justify-content: flex-end; }
+
+    /* ── Add row inputs ── */
+    .add-row select { font-size: 11px; }
+    .custom-row input { font-size: 11px; }
+
+    /* ── Alerts ── */
+    .alert-row { flex-wrap: wrap; gap: 8px; }
+    .alert-days { min-width: 44px; }
+    .alert-days .num { font-size: 16px; }
+    .alert-match { font-size: 12px; }
+    .alert-meta { font-size: 10px; }
+    .alert-tc { font-size: 11px; padding: 4px 8px; }
+
+    /* ── Combo dots ── */
+    .combo-dots { gap: 4px; }
+    .combo-dot { width: 9px; height: 9px; }
+
+    /* ── Modals ── */
+    #api-modal > div, #af-modal > div {
+      width: calc(100vw - 32px);
+      padding: 16px;
+    }
+
+    /* ── Settings menu ── */
+    .settings-menu { right: 0; min-width: 180px; }
+    .settings-item { font-size: 12px; padding: 9px 12px; }
+
+    /* ── Phase header badge ── */
+    .phase-count { display: none; }
+  }
+
+  @media (max-width: 480px) {
+    .nav-tab { font-size: 11px; padding: 4px 8px; }
+    .tl-teams { font-size: 12px; }
+    .match-score .team-name { max-width: 55px; font-size: 10px; }
+    .match-score .score-num { font-size: 16px; }
+    .stat-chip { font-size: 11px; padding: 5px 8px; }
+    .odds-grid { gap: 3px; }
+    .editor-match-title { font-size: 13px; }
+    .alert-row { padding: 10px 12px; }
+  }
 </style>
 <!-- SheetJS for Excel export -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
