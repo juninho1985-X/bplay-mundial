@@ -183,6 +183,9 @@
   .tag-push  { background: var(--purple-light); color: var(--purple-dark); }
   .tag-boost { background: var(--amber-light); color: var(--amber-dark); }
   .tag-live  { background: var(--coral-light); color: var(--coral-dark); }
+  .tag-casino { background: rgba(4,247,124,0.12); color: #04F77C; border: 0.5px solid rgba(4,247,124,0.3); }
+  .combo-dot.casino { background: #04F77C; border-color: #04F77C; }
+  .combo-dot.empty.casino { background: transparent; border-color: #04F77C; }
   .tl-edit-btn { margin-top: 8px; font-size: 12px; padding: 5px 12px; border-radius: var(--radius); border: 0.5px solid var(--bp-lime); background: transparent; color: var(--bp-lime); cursor: pointer; }
   .tl-edit-btn:hover { background: var(--gray-100); }
   .empty-combo { font-size: 12px; color: var(--text-hint); padding: 4px 0; }
@@ -477,6 +480,7 @@
   .dash-pending-edit { font-size: 11px; color: var(--bp-lime); cursor: pointer; background: none; border: none; padding: 0; }
   @media (max-width: 768px) {
     .dash-grid { grid-template-columns: 1fr; }
+    .dash-grid + div[style*='grid-template-columns:1fr 1fr'] { grid-template-columns: 1fr !important; }
     .dash-bar-label { width: 90px; font-size: 11px; }
   }
 </style>
@@ -502,6 +506,7 @@
     <button class="nav-tab" onclick="switchView('editor', this)">Editor de combos</button>
     <button class="nav-tab" id="alert-tab" onclick="switchView('alerts', this)">Alertas <span id="alert-badge" style="display:none;background:#E24B4A;color:#fff;font-size:10px;padding:1px 6px;border-radius:8px;margin-left:4px"></span></button>
     <button class="nav-tab" onclick="switchView('dashboard', this)">Dashboard</button>
+    <button class="nav-tab" onclick="switchView('casino', this)">Casino</button>
   </div>
   <div class="nav-actions">
     <button class="theme-toggle" id="theme-btn" onclick="toggleTheme()" title="Cambiar modo">🌙</button>
@@ -633,6 +638,11 @@
   <div id="dashboard-body"></div>
 </div>
 
+<!-- ═══════════════ CASINO VIEW ═══════════════ -->
+<div id="view-casino" class="view">
+  <div id="casino-body"></div>
+</div>
+
 <!-- ═══════════════ ALERTS VIEW ═══════════════ -->
 <div id="view-alerts" class="view">
   <div id="alerts-body"></div>
@@ -643,10 +653,11 @@ const C={
   promo:["Bono apertura del torneo","Free bet primer gol","Cashback si hay empate","Promo goleada confirmada","Seguro de apuesta (dev. si pierde x1)","2x en primer depósito del día","Bono clasificación a siguiente fase","Promo campeón defensor","Promo debut de selección","Bono sorpresa: rival gana","Free bet para nuevos usuarios","Promo recarga semanal"],
   push:["Push pre-partido (3h antes)","Push 30min antes del KO","Push alerta partido clave","Push clasificación en juego","Push resultado en vivo","Push horario nocturno AR","Push segmento VIP","Push reactivación inactivos","Push recordatorio jornada","Push especial KO eliminatorio"],
   boost:["Cuota potenciada: favorito gana","Cuota +2.5 goles","Cuota: ambos equipos anotan","Cuota 1er goleador","Cuota: gana en 90min","Cuota doble oportunidad","Cuota especial: campeón torneo","Cuota combo goles + resultado","Cuota potenciada: clean sheet","Cuota: gana en prórroga/penales"],
-  live:["In-play refund si empata al HT","Combo goles + corners","Apuesta 1er/2do tiempo","Boost 2x primer gol en vivo","Mercados cada 5 min","Cash out disponible","Especial prórroga / penales","Stats en vivo integradas","Panic button (retiro anticipado)","Live especial octavos/cuartos"]
+  live:["In-play refund si empata al HT","Combo goles + corners","Apuesta 1er/2do tiempo","Boost 2x primer gol en vivo","Mercados cada 5 min","Cash out disponible","Especial prórroga / penales","Stats en vivo integradas","Panic button (retiro anticipado)","Live especial octavos/cuartos"],
+  casino:["Torneo de slots durante el partido","Torneo de slots toda la jornada","Happy hour pre-partido (bonos casino)","Happy hour en vivo (durante el partido)","Happy hour post-partido","Promo casino: giros gratis por gol","Promo casino: cashback si pierde tu equipo","Multiplicador x2 en apuestas casino","Desafío diario casino Mundial","Ruleta en vivo temática Mundial","Blackjack especial Copa del Mundo","Bono bienvenida casino nuevos usuarios","Promo reactivación casino","Free spins seleccionados slots"]
 };
-const TL={promo:"Promociones",push:"Push notifications",boost:"Cuotas potenciadas",live:"Live betting"};
-const TC={promo:"#1D9E75",push:"#534AB7",boost:"#BA7517",live:"#D85A30"};
+const TL={promo:"Promociones",push:"Push notifications",boost:"Cuotas potenciadas",live:"Live betting",casino:"Casino"};
+const TC={promo:"#22C97A",push:"#8B7CF6",boost:"#F5A623",live:"#FF5C5C",casino:"#04F77C"};
 
 const DAYS=[
   {date:"Jue 11 jun",color:"#1D9E75",label:"Fase de grupos",matches:[
@@ -894,14 +905,15 @@ function toArray(val){
 function normalizeCombo(c){
   if(!c) return {promo:[],push:[],boost:[],live:[]};
   return {
-    promo: toArray(c.promo),
-    push:  toArray(c.push),
-    boost: toArray(c.boost),
-    live:  toArray(c.live)
+    promo:  toArray(c.promo),
+    push:   toArray(c.push),
+    boost:  toArray(c.boost),
+    live:   toArray(c.live),
+    casino: toArray(c.casino)
   };
 }
 function getCombo(id){
-  if(!combos[id]) combos[id]={promo:[],push:[],boost:[],live:[]};
+  if(!combos[id]) combos[id]={promo:[],push:[],boost:[],live:[],casino:[]};
   return combos[id];
 }
 function comboSize(id){
@@ -989,22 +1001,24 @@ function load(){
 function matchDate(id){
   const m=ALL.find(x=>x.id===id);
   if(!m) return null;
-  // day.date format: "Jue 11 jun", "Vie 12 jun", etc.
-  // m.h format: "16:00", "01:00*", "00:00*"
-  const dayObj=DAYS[parseInt(id.split('-')[0])];
+  const dayObj=DAYS.find(d=>d.matches.some(mx=>makeId(mx.t,d.date)===id));
   if(!dayObj) return null;
-  const dateStr=dayObj.date; // e.g. "Jue 11 jun"
-  const parts=dateStr.split(' '); // ["Jue","11","jun"]
+  const parts=dayObj.date.split(' '); // ["Jue","11","jun"]
   const dayNum=parseInt(parts[1]);
   const monthMap={jun:6,jul:7};
   const month=monthMap[parts[2]];
   if(!month) return null;
-  let hour=parseInt((m.h||'00').replace('*',''));
-  let min=parseInt((m.h||'00:00').split(':')[1])||0;
-  // Dates with * mean next calendar day (01:00* etc)
-  let extraDay= m.h&&m.h.includes('*') ? 1 : 0;
-  // Build UTC date: Argentina is UTC-3, so add 3h to get UTC
-  return new Date(Date.UTC(2026, month-1, dayNum+extraDay, hour+3, min));
+  // Parse hour — strip * suffix (means next calendar day)
+  const hStr=(m.h||'12:00').replace('*','').replace('a conf.','12:00').replace('a confirmar','12:00');
+  const hour=parseInt(hStr.split(':')[0])||0;
+  const min=parseInt(hStr.split(':')[1])||0;
+  const extraDay=m.h&&m.h.includes('*')?1:0;
+  // Use Date constructor with local-like values then offset for AR (UTC-3)
+  // Create as UTC then subtract 3h (AR is UTC-3, so AR time + 3h = UTC)
+  const d=new Date(0);
+  d.setUTCFullYear(2026, month-1, dayNum+extraDay);
+  d.setUTCHours(hour+3, min, 0, 0); // hour+3 converts AR→UTC correctly via setUTCHours (handles overflow automatically)
+  return d;
 }
 
 function getStatus(id){
@@ -1028,7 +1042,7 @@ function tlVisible(id){
 
 function comboDots(id){
   const combo = combos[id]||{};
-  const types = ['promo','push','boost','live'];
+  const types = ['promo','push','boost','live','casino'];
   return `<span class="combo-dots" title="${
     types.map(t=>{
       const c=combo[t]||[];
@@ -1047,7 +1061,7 @@ function buildComboDetail(id){
   const combo=combos[id]||{promo:[],push:[],boost:[],live:[]};
   const size=comboSize(id);
   if(size===0) return '<p style="font-size:12px;color:#888780;padding:4px 0">Sin acciones asignadas aún.</p>';
-  return ['promo','push','boost','live']
+  return ['promo','push','boost','live','casino']
     .filter(type=>combo[type].length>0)
     .map(type=>`<div style="margin-bottom:10px">
       <div style="font-size:10px;font-weight:500;color:#5F5E5A;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px">${TL[type]}</div>
@@ -1208,7 +1222,7 @@ function renderBlocks(){
   const combo=getCombo(activeId);
   const container=document.getElementById('actionBlocks');
   container.innerHTML='';
-  ['promo','push','boost','live'].forEach(type=>{
+  ['promo','push','boost','live','casino'].forEach(type=>{
     const sel=combo[type];
     const tagsHtml=sel.length
       ?sel.map((v,i)=>`<span class="tag tag-${type} tag-removable">${v}<span class="tag-x" onclick="rmTag('${type}',${i})">&#x2715;</span></span>`).join('')
@@ -1705,6 +1719,7 @@ function switchView(view,btn){
   if(view==='timeline') renderTimeline();
   if(view==='alerts') renderAlerts();
   if(view==='dashboard') renderDashboard();
+  if(view==='casino') renderCasino();
 }
 
 function goEdit(id){
@@ -2012,123 +2027,175 @@ function renderScoreSection(id, container){
 }
 
 // ── DASHBOARD ──
+function donutSegments(pct, r){
+  const circ = 2*Math.PI*r;
+  return { filled: ((pct/100)*circ).toFixed(1), empty: (circ-(pct/100)*circ).toFixed(1) };
+}
+
 function renderDashboard(){
   const body = document.getElementById('dashboard-body');
   if(!body) return;
 
+  // ── Sports combos ──
   const total = ALL.length;
   const withCombo = ALL.filter(m => comboSize(m.id) > 0).length;
   const pct = total > 0 ? Math.round((withCombo/total)*100) : 0;
   const without = total - withCombo;
+  const {filled:fd, empty:ed} = donutSegments(pct, 44);
 
-  // Actions per category
-  const catTotals = {promo:0, push:0, boost:0, live:0};
-  const catLabels = {promo:'Promociones', push:'Push notifications', boost:'Cuotas potenciadas', live:'Live betting'};
-  const catColors = {promo:'#22C97A', push:'#8B7CF6', boost:'#F5A623', live:'#FF5C5C'};
+  // Actions per category (sports)
+  const catTotals = {promo:0, push:0, boost:0, live:0, casino:0};
+  const catLabels = {promo:'Promociones', push:'Push notifications', boost:'Cuotas potenciadas', live:'Live betting', casino:'Casino (partidos)'};
+  const catColors = {promo:'#22C97A', push:'#8B7CF6', boost:'#F5A623', live:'#FF5C5C', casino:'#04F77C'};
   ALL.forEach(m=>{
     const c = combos[m.id]||{};
-    ['promo','push','boost','live'].forEach(t=>{ catTotals[t]+=(c[t]||[]).length; });
+    ['promo','push','boost','live','casino'].forEach(t=>{ catTotals[t]+=(c[t]||[]).length; });
   });
-  const maxCat = Math.max(...Object.values(catTotals), 1);
   const totalActions = Object.values(catTotals).reduce((a,v)=>a+v,0);
+  const maxCat = Math.max(...Object.values(catTotals), 1);
 
-  // T&C stats — only matches within next 7 days
+  // ── Casino independent actions ──
+  const torneos   = casinoActions.filter(a=>a.type==='torneo');
+  const happyhour = casinoActions.filter(a=>a.type==='happyhour');
+  const promos    = casinoActions.filter(a=>a.type==='promo');
+  const totalCasino = casinoActions.length;
+
+  // ── T&C stats ──
   const tcMatches = ALL.filter(m=>{ const d=daysUntil(m.id); return d!==null&&d>=0&&d<=7; });
   const tcSentCount = tcMatches.filter(m=>tcSent[m.id]).length;
   const tcPending = tcMatches.length - tcSentCount;
   const tcPct = tcMatches.length > 0 ? Math.round((tcSentCount/tcMatches.length)*100) : 100;
+  const {filled:sf, empty:se} = donutSegments(tcPct, 44);
 
-  // Donut segments for combo coverage
-  const r=44, circ=2*Math.PI*r;
-  const filledDash = (pct/100)*circ;
-  const emptyDash  = circ - filledDash;
+  // ── Casino donut ──
+  const casinoPct = totalCasino > 0 ? Math.min(100, Math.round((totalCasino/20)*100)) : 0;
+  const {filled:cf, empty:ce} = donutSegments(casinoPct, 44);
 
-  // T&C donut
-  const r2=44, circ2=2*Math.PI*r2;
-  const sentDash = (tcPct/100)*circ2;
-  const pendDash = circ2 - sentDash;
-
-  // Matches without combo list (next 14 days first)
+  // ── Pending combos ──
   const pendingMatches = ALL
     .filter(m=>comboSize(m.id)===0)
     .sort((a,b)=>{ const da=daysUntil(a.id)||999, db=daysUntil(b.id)||999; return da-db; })
     .slice(0,10);
 
   body.innerHTML = `
-    <div class="dash-grid">
 
-      <!-- Card 1: Combo coverage donut -->
+    <!-- Row 1: 3 donuts -->
+    <div class="dash-grid" style="margin-bottom:14px">
+
+      <!-- Combo coverage -->
       <div class="dash-card">
         <div class="dash-card-title">Cobertura de combos</div>
         <div class="dash-donut-wrap">
           <div class="dash-donut">
             <svg width="108" height="108" viewBox="0 0 108 108">
-              <circle cx="54" cy="54" r="${r}" fill="none" stroke="var(--border)" stroke-width="10"/>
-              <circle cx="54" cy="54" r="${r}" fill="none" stroke="#04F77C" stroke-width="10"
-                stroke-dasharray="${filledDash.toFixed(1)} ${emptyDash.toFixed(1)}"
-                stroke-linecap="round"/>
+              <circle cx="54" cy="54" r="44" fill="none" stroke="var(--border)" stroke-width="10"/>
+              <circle cx="54" cy="54" r="44" fill="none" stroke="#04F77C" stroke-width="10"
+                stroke-dasharray="${fd} ${ed}" stroke-linecap="round"/>
             </svg>
-            <div class="dash-donut-center">
-              <span class="dash-donut-pct">${pct}%</span>
-              <span class="dash-donut-lbl">cubiertos</span>
-            </div>
+            <div class="dash-donut-center"><span class="dash-donut-pct">${pct}%</span><span class="dash-donut-lbl">cubiertos</span></div>
           </div>
           <div class="dash-legend">
             <div class="dash-legend-item"><div class="dash-legend-dot" style="background:#04F77C"></div>${withCombo} con combo</div>
             <div class="dash-legend-item"><div class="dash-legend-dot" style="background:var(--border)"></div>${without} sin combo</div>
-            <div class="dash-legend-item" style="margin-top:4px;color:var(--text);font-weight:500">${total} partidos totales</div>
+            <div class="dash-legend-item" style="margin-top:4px;color:var(--text);font-weight:500">${total} partidos</div>
           </div>
         </div>
       </div>
 
-      <!-- Card 2: Actions by category -->
+      <!-- Casino actions donut -->
       <div class="dash-card">
-        <div class="dash-card-title">Acciones por categoría</div>
-        <div class="dash-chart-wrap" style="margin-top:6px">
-          ${['promo','push','boost','live'].map(t=>`
-            <div class="dash-bar-row">
-              <div class="dash-bar-label">${catLabels[t]}</div>
-              <div class="dash-bar-track">
-                <div class="dash-bar-fill" style="width:${maxCat>0?Math.round((catTotals[t]/maxCat)*100):0}%;background:${catColors[t]}"></div>
-              </div>
-              <div class="dash-bar-val">${catTotals[t]}</div>
-            </div>`).join('')}
-          <div style="margin-top:8px;font-size:11px;color:var(--text-muted)">${totalActions} acciones totales</div>
+        <div class="dash-card-title">Acciones Casino independientes</div>
+        <div class="dash-donut-wrap">
+          <div class="dash-donut">
+            <svg width="108" height="108" viewBox="0 0 108 108">
+              <circle cx="54" cy="54" r="44" fill="none" stroke="var(--border)" stroke-width="10"/>
+              <circle cx="54" cy="54" r="44" fill="none" stroke="#8B7CF6" stroke-width="10"
+                stroke-dasharray="${cf} ${ce}" stroke-linecap="round"/>
+            </svg>
+            <div class="dash-donut-center"><span class="dash-donut-pct" style="color:#8B7CF6">${totalCasino}</span><span class="dash-donut-lbl">acciones</span></div>
+          </div>
+          <div class="dash-legend">
+            <div class="dash-legend-item"><div class="dash-legend-dot" style="background:#8B7CF6"></div>${torneos.length} torneo${torneos.length!==1?'s':''}</div>
+            <div class="dash-legend-item"><div class="dash-legend-dot" style="background:#F5A623"></div>${happyhour.length} happy hour</div>
+            <div class="dash-legend-item"><div class="dash-legend-dot" style="background:#04F77C"></div>${promos.length} promo${promos.length!==1?'s':''}</div>
+            ${casinoActions.some(a=>a.budgetTotal)?`<div style="margin-top:6px;font-size:11px;color:var(--text-muted)">Total presupuesto:<br><strong style="color:var(--text);font-size:13px">$${casinoActions.reduce((s,a)=>s+(a.budgetTotal||0),0).toLocaleString('es-AR')}</strong></div>`:''}
+            <div style="margin-top:4px">
+              <button class="dash-pending-edit" onclick="switchView('casino',document.querySelectorAll('.nav-tab')[4])" style="color:var(--bp-lime);font-size:11px;background:none;border:none;cursor:pointer;padding:0">Ver Casino →</button>
+            </div>
+          </div>
         </div>
       </div>
 
-      <!-- Card 3: T&C status donut -->
+      <!-- T&C donut -->
       <div class="dash-card">
         <div class="dash-card-title">T&C próximos 7 días</div>
         ${tcMatches.length === 0
-          ? `<div class="dash-sub" style="margin-top:12px">No hay partidos en los próximos 7 días.</div>`
+          ? `<div class="dash-sub" style="margin-top:12px;font-size:12px;color:var(--text-muted)">No hay partidos en los próximos 7 días.</div>`
           : `<div class="dash-donut-wrap">
-            <div class="dash-donut">
-              <svg width="108" height="108" viewBox="0 0 108 108">
-                <circle cx="54" cy="54" r="${r2}" fill="none" stroke="var(--border)" stroke-width="10"/>
-                <circle cx="54" cy="54" r="${r2}" fill="none" stroke="#04F77C" stroke-width="10"
-                  stroke-dasharray="${sentDash.toFixed(1)} ${pendDash.toFixed(1)}"
-                  stroke-linecap="round"/>
-              </svg>
-              <div class="dash-donut-center">
-                <span class="dash-donut-pct">${tcPct}%</span>
-                <span class="dash-donut-lbl">enviados</span>
+              <div class="dash-donut">
+                <svg width="108" height="108" viewBox="0 0 108 108">
+                  <circle cx="54" cy="54" r="44" fill="none" stroke="var(--border)" stroke-width="10"/>
+                  <circle cx="54" cy="54" r="44" fill="none" stroke="#04F77C" stroke-width="10"
+                    stroke-dasharray="${sf} ${se}" stroke-linecap="round"/>
+                </svg>
+                <div class="dash-donut-center"><span class="dash-donut-pct">${tcPct}%</span><span class="dash-donut-lbl">enviados</span></div>
               </div>
-            </div>
-            <div class="dash-legend">
-              <div class="dash-legend-item"><div class="dash-legend-dot" style="background:#04F77C"></div>${tcSentCount} enviados</div>
-              <div class="dash-legend-item"><div class="dash-legend-dot" style="background:var(--coral)"></div>${tcPending} pendientes</div>
-              <div class="dash-legend-item" style="margin-top:4px;color:var(--text);font-weight:500">${tcMatches.length} partidos totales</div>
-            </div>
-          </div>`
+              <div class="dash-legend">
+                <div class="dash-legend-item"><div class="dash-legend-dot" style="background:#04F77C"></div>${tcSentCount} enviados</div>
+                <div class="dash-legend-item"><div class="dash-legend-dot" style="background:var(--coral)"></div>${tcPending} pendientes</div>
+                <div class="dash-legend-item" style="margin-top:4px;color:var(--text);font-weight:500">${tcMatches.length} partidos</div>
+              </div>
+            </div>`
         }
       </div>
     </div>
 
-    <!-- Pending combos list -->
+    <!-- Row 2: bars + casino breakdown side by side -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+
+      <!-- Actions by category (sports) -->
+      <div class="dash-card">
+        <div class="dash-card-title">Acciones deportivas por categoría</div>
+        <div class="dash-chart-wrap" style="margin-top:6px">
+          ${['promo','push','boost','live','casino'].map(t=>`
+            <div class="dash-bar-row">
+              <div class="dash-bar-label">${catLabels[t]}</div>
+              <div class="dash-bar-track"><div class="dash-bar-fill" style="width:${Math.round((catTotals[t]/maxCat)*100)}%;background:${catColors[t]}"></div></div>
+              <div class="dash-bar-val">${catTotals[t]}</div>
+            </div>`).join('')}
+          <div style="margin-top:8px;font-size:11px;color:var(--text-muted)">${totalActions} acciones totales en partidos</div>
+        </div>
+      </div>
+
+      <!-- Casino breakdown -->
+      <div class="dash-card">
+        <div class="dash-card-title">Detalle Casino independiente</div>
+        ${totalCasino === 0
+          ? `<div style="font-size:12px;color:var(--text-muted);margin-top:8px">Sin acciones creadas. <button class="dash-pending-edit" onclick="switchView('casino',document.querySelectorAll('.nav-tab')[4])" style="color:var(--bp-lime);font-size:12px;background:none;border:none;cursor:pointer;padding:0">Ir a Casino →</button></div>`
+          : `<div style="display:flex;flex-direction:column;gap:10px;margin-top:6px">
+              ${[{type:'torneo',items:torneos,color:'#8B7CF6',icon:'🎰'},{type:'happyhour',items:happyhour,color:'#F5A623',icon:'⚡'},{type:'promo',items:promos,color:'#04F77C',icon:'🎁'}].map(({type,items,color,icon})=>
+                items.length === 0 ? '' : `
+                <div>
+                  <div style="font-size:11px;font-weight:500;color:${color};margin-bottom:4px">${icon} ${CASINO_TYPE_LABELS[type]} (${items.length})</div>
+                  ${items.slice(0,3).map(a=>`
+                    <div style="font-size:12px;color:var(--text);padding:4px 0;border-bottom:0.5px solid var(--border);display:flex;justify-content:space-between;gap:8px">
+                      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${a.title}</span>
+                      <span style="color:var(--text-muted);white-space:nowrap;font-size:11px">${a.dateFrom}${a.dateTo&&a.dateTo!==a.dateFrom?' – '+a.dateTo:''}</span>
+                    </div>
+                      ${(a.provider||a.budgetTotal)?`<div style="display:flex;gap:5px;margin-top:3px;flex-wrap:wrap">${a.provider?`<span style="font-size:10px;background:rgba(139,124,246,0.15);color:#8B7CF6;padding:1px 6px;border-radius:6px">${a.provider}</span>`:''} ${a.budgetTotal?`<span style="font-size:10px;color:var(--text-muted)">$${Number(a.budgetTotal).toLocaleString('es-AR')}</span>`:''}</div>`:''}
+                    </div>`).join('')}
+                  ${items.length > 3 ? `<div style="font-size:11px;color:var(--text-muted);margin-top:3px">+${items.length-3} más</div>` : ''}
+                </div>`
+              ).join('')}
+            </div>`
+        }
+      </div>
+    </div>
+
+    <!-- Row 3: Pending combos -->
     ${pendingMatches.length > 0 ? `
     <div class="dash-card">
-      <div class="dash-section-title">Partidos sin combo asignado <span style="color:var(--text-muted);font-weight:400;font-size:12px">(${without} total · mostrando los más próximos)</span></div>
+      <div class="dash-section-title">Partidos sin combo asignado <span style="color:var(--text-muted);font-weight:400;font-size:12px">(${without} total · más próximos primero)</span></div>
       <div class="dash-pending-list">
         ${pendingMatches.map(m=>{
           const days = daysUntil(m.id);
@@ -2143,6 +2210,206 @@ function renderDashboard(){
       </div>
     </div>` : `<div class="dash-card" style="text-align:center;padding:24px"><span style="font-size:24px">🎉</span><div style="margin-top:8px;font-size:13px;color:var(--text-muted)">Todos los partidos tienen combo asignado.</div></div>`}
   `;
+}
+
+// ── CASINO ACTIONS ──
+// casinoActions: [{id, type, title, dateFrom, dateTo, timeFrom, timeTo, notes, status}]
+// type: 'torneo' | 'happyhour' | 'promo'
+let casinoActions = [];
+const REF_CASINO = firebaseReady ? db.ref('casinoActions') : null;
+
+const CASINO_TYPE_LABELS = {torneo:'Torneo de slots', happyhour:'Happy hour', promo:'Promo casino'};
+const CASINO_TYPE_COLORS = {torneo:'#8B7CF6', happyhour:'#F5A623', promo:'#04F77C'};
+
+function makeCasinoId(){
+  return 'ca-' + Date.now() + '-' + Math.random().toString(36).slice(2,7);
+}
+
+function saveCasinoActions(){
+  if(REF_CASINO) REF_CASINO.set(casinoActions.length ? casinoActions : null);
+}
+
+function loadCasinoActions(){
+  if(!REF_CASINO){ renderCasino(); return; }
+  REF_CASINO.on('value', snap=>{
+    casinoActions = snap.val() ? Object.values(snap.val()) : [];
+    renderCasino();
+  });
+}
+
+function renderCasino(){
+  const body = document.getElementById('casino-body');
+  if(!body) return;
+
+  const typeColors = CASINO_TYPE_COLORS;
+  const typeLabels = CASINO_TYPE_LABELS;
+
+  body.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+      <div>
+        <div style="font-size:15px;font-weight:500;color:var(--text)">Acciones de Casino — Mundial 2026</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:2px">Torneos, happy hours y promos independientes de los partidos</div>
+      </div>
+      <button class="btn btn-primary" onclick="openCasinoModal()">+ Nueva acción</button>
+    </div>
+
+    ${casinoActions.length === 0
+      ? `<div style="text-align:center;padding:40px;color:var(--text-muted);font-size:13px">
+          <div style="font-size:32px;margin-bottom:8px">🎰</div>
+          No hay acciones de casino creadas aún.<br>Click en "+ Nueva acción" para empezar.
+         </div>`
+      : `<div style="display:flex;flex-direction:column;gap:8px">
+          ${['torneo','happyhour','promo'].map(type=>{
+            const items = casinoActions.filter(a=>a.type===type);
+            if(!items.length) return '';
+            return `<div style="margin-bottom:4px">
+              <div style="font-size:10px;font-weight:500;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;display:flex;align-items:center;gap:6px">
+                <span style="width:8px;height:8px;border-radius:50%;background:${typeColors[type]};display:inline-block"></span>
+                ${typeLabels[type]} (${items.length})
+              </div>
+              ${items.map(a=>`
+                <div style="background:var(--bg);border:0.5px solid var(--border);border-left:3px solid ${typeColors[a.type]};border-radius:0 ${8}px ${8}px 0;padding:12px 14px;margin-bottom:6px;display:flex;align-items:flex-start;gap:12px">
+                  <div style="flex:1;min-width:0">
+                    <div style="font-size:13px;font-weight:500;color:var(--text)">${a.title}</div>
+                    <div style="font-size:11px;color:var(--text-muted);margin-top:3px;display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+                      <span>${a.dateFrom}${a.dateTo&&a.dateTo!==a.dateFrom?' → '+a.dateTo:''}</span>
+                      ${a.timeFrom?`<span>${a.timeFrom}${a.timeTo?' – '+a.timeTo:''}</span>`:''}
+                      ${a.provider?`<span style="background:rgba(139,124,246,0.15);color:#8B7CF6;padding:1px 7px;border-radius:8px;font-size:10px;font-weight:500">${a.provider}</span>`:''}
+                    </div>
+                    ${(a.budgetProvider||a.budgetBplay)?`
+                    <div style="display:flex;gap:8px;margin-top:5px;flex-wrap:wrap">
+                      ${a.budgetProvider?`<span style="font-size:11px;background:rgba(245,166,35,0.1);color:#F5A623;padding:2px 8px;border-radius:8px">Proveedor: $${Number(a.budgetProvider).toLocaleString('es-AR')}</span>`:''}
+                      ${a.budgetBplay?`<span style="font-size:11px;background:rgba(4,247,124,0.1);color:#04F77C;padding:2px 8px;border-radius:8px">Bplay: $${Number(a.budgetBplay).toLocaleString('es-AR')}</span>`:''}
+                      ${a.budgetTotal?`<span style="font-size:11px;color:var(--text-muted)">Total: $${Number(a.budgetTotal).toLocaleString('es-AR')}</span>`:''}
+                    </div>`:''}
+                    ${a.notes?`<div style="font-size:11px;color:var(--text-muted);margin-top:4px;font-style:italic">${a.notes}</div>`:''}
+                  </div>
+                  <div style="display:flex;gap:6px;flex-shrink:0">
+                    <button onclick="editCasinoAction('${a.id}')" style="font-size:11px;padding:3px 8px;border-radius:6px;border:0.5px solid var(--border-strong);background:transparent;color:var(--text-muted);cursor:pointer">Editar</button>
+                    <button onclick="deleteCasinoAction('${a.id}')" style="font-size:11px;padding:3px 8px;border-radius:6px;border:0.5px solid var(--border-strong);background:transparent;color:var(--coral);cursor:pointer">✕</button>
+                  </div>
+                </div>`).join('')}
+            </div>`;
+          }).join('')}
+        </div>`
+    }`;
+}
+
+function openCasinoModal(existingId){
+  const existing = existingId ? casinoActions.find(a=>a.id===existingId) : null;
+  const modal = document.createElement('div');
+  modal.id = 'casino-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;display:flex;align-items:center;justify-content:center';
+  modal.innerHTML = `
+    <div style="background:var(--bg);border-radius:var(--radius-lg);border:0.5px solid var(--border-strong);padding:20px 24px;width:420px;max-width:calc(100vw - 32px);max-height:90vh;overflow-y:auto">
+      <div style="font-size:14px;font-weight:500;margin-bottom:16px">${existing?'Editar':'Nueva'} acción de Casino</div>
+
+      <div style="margin-bottom:10px">
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">Tipo *</div>
+        <select id="ca-type" style="width:100%;padding:7px 10px;font-size:13px;border:0.5px solid var(--border-strong);border-radius:var(--radius);background:var(--bg);color:var(--text)">
+          <option value="torneo" ${existing?.type==='torneo'?'selected':''}>🎰 Torneo de slots</option>
+          <option value="happyhour" ${existing?.type==='happyhour'?'selected':''}>⚡ Happy hour</option>
+          <option value="promo" ${existing?.type==='promo'?'selected':''}>🎁 Promo casino</option>
+        </select>
+      </div>
+
+      <div style="margin-bottom:10px">
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">Título *</div>
+        <input type="text" id="ca-title" value="${existing?.title||''}" placeholder="Ej: Torneo Slots Mundial — Semana 1" style="width:100%;padding:7px 10px;font-size:13px;border:0.5px solid var(--border-strong);border-radius:var(--radius);background:var(--bg);color:var(--text)">
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+        <div>
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">Fecha inicio *</div>
+          <input type="text" id="ca-date-from" value="${existing?.dateFrom||''}" placeholder="Ej: 11 jun" style="width:100%;padding:7px 10px;font-size:13px;border:0.5px solid var(--border-strong);border-radius:var(--radius);background:var(--bg);color:var(--text)">
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">Fecha fin</div>
+          <input type="text" id="ca-date-to" value="${existing?.dateTo||''}" placeholder="Ej: 27 jun" style="width:100%;padding:7px 10px;font-size:13px;border:0.5px solid var(--border-strong);border-radius:var(--radius);background:var(--bg);color:var(--text)">
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+        <div>
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">Hora inicio (AR)</div>
+          <input type="text" id="ca-time-from" value="${existing?.timeFrom||''}" placeholder="Ej: 18:00" style="width:100%;padding:7px 10px;font-size:13px;border:0.5px solid var(--border-strong);border-radius:var(--radius);background:var(--bg);color:var(--text)">
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">Hora fin (AR)</div>
+          <input type="text" id="ca-time-to" value="${existing?.timeTo||''}" placeholder="Ej: 22:00" style="width:100%;padding:7px 10px;font-size:13px;border:0.5px solid var(--border-strong);border-radius:var(--radius);background:var(--bg);color:var(--text)">
+        </div>
+      </div>
+
+      <div style="margin-bottom:10px">
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">Proveedor</div>
+        <select id="ca-provider" style="width:100%;padding:7px 10px;font-size:13px;border:0.5px solid var(--border-strong);border-radius:var(--radius);background:var(--bg);color:var(--text)">
+          <option value="">Sin proveedor</option>
+          ${['Pragmatic','Evolution','Games Global','Zitro','Playtech'].map(p=>`<option value="${p}" ${existing?.provider===p?'selected':''}>${p}</option>`).join('')}
+        </select>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+        <div>
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">Aporte proveedor ($)</div>
+          <input type="number" id="ca-budget-provider" value="${existing?.budgetProvider||''}" placeholder="0" min="0" style="width:100%;padding:7px 10px;font-size:13px;border:0.5px solid var(--border-strong);border-radius:var(--radius);background:var(--bg);color:var(--text)">
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">Aporte Bplay ($)</div>
+          <input type="number" id="ca-budget-bplay" value="${existing?.budgetBplay||''}" placeholder="0" min="0" style="width:100%;padding:7px 10px;font-size:13px;border:0.5px solid var(--border-strong);border-radius:var(--radius);background:var(--bg);color:var(--text)">
+        </div>
+      </div>
+
+      <div style="margin-bottom:16px">
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">Notas / descripción</div>
+        <textarea id="ca-notes" rows="2" placeholder="Detalles adicionales, mecánica, premio, etc." style="width:100%;padding:7px 10px;font-size:13px;border:0.5px solid var(--border-strong);border-radius:var(--radius);background:var(--bg);color:var(--text);resize:vertical">${existing?.notes||''}</textarea>
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;gap:8px">
+        <button class="btn" onclick="document.getElementById('casino-modal').remove()">Cancelar</button>
+        <button class="btn btn-primary" onclick="saveCasinoAction('${existingId||''}')">Guardar</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e=>{ if(e.target===modal) modal.remove(); });
+}
+
+function saveCasinoAction(existingId){
+  const title = document.getElementById('ca-title').value.trim();
+  if(!title){ alert('El título es obligatorio.'); return; }
+  const prRaw = parseFloat(document.getElementById('ca-budget-provider')?.value)||0;
+  const bpRaw = parseFloat(document.getElementById('ca-budget-bplay')?.value)||0;
+  const action = {
+    id: existingId || makeCasinoId(),
+    type: document.getElementById('ca-type').value,
+    title,
+    dateFrom: document.getElementById('ca-date-from').value.trim(),
+    dateTo: document.getElementById('ca-date-to').value.trim(),
+    timeFrom: document.getElementById('ca-time-from').value.trim(),
+    timeTo: document.getElementById('ca-time-to').value.trim(),
+    provider: document.getElementById('ca-provider')?.value||'',
+    budgetProvider: prRaw,
+    budgetBplay: bpRaw,
+    budgetTotal: prRaw+bpRaw,
+    notes: document.getElementById('ca-notes').value.trim(),
+  };
+  if(existingId){
+    const idx = casinoActions.findIndex(a=>a.id===existingId);
+    if(idx>=0) casinoActions[idx] = action;
+  } else {
+    casinoActions.push(action);
+  }
+  saveCasinoActions();
+  renderCasino();
+  document.getElementById('casino-modal')?.remove();
+}
+
+function editCasinoAction(id){ openCasinoModal(id); }
+
+function deleteCasinoAction(id){
+  if(!confirm('¿Eliminar esta acción de casino?')) return;
+  casinoActions = casinoActions.filter(a=>a.id!==id);
+  saveCasinoActions();
+  renderCasino();
 }
 
 // ── SETTINGS MENU ──
@@ -2183,6 +2450,7 @@ setInterval(()=>{ renderTimeline(); renderAlerts(); renderDashboard(); }, 30000)
 // Boot — Firebase listeners or local fallback
 initTheme();
 load();
+loadCasinoActions();
 </script>
 </body>
 </html>
