@@ -483,6 +483,51 @@
     .dash-grid + div[style*='grid-template-columns:1fr 1fr'] { grid-template-columns: 1fr !important; }
     .dash-bar-label { width: 90px; font-size: 11px; }
   }
+
+  /* Dashboard export */
+  @media print {
+    body { background: #fff !important; color: #000 !important; }
+    .nav, #dashboard-topbar { display: none !important; }
+    #view-dashboard { display: block !important; padding: 0; }
+    .view:not(#view-dashboard) { display: none !important; }
+    .dash-card { border: 1px solid #ddd !important; background: #fff !important; break-inside: avoid; }
+    .dash-card-title { color: #333 !important; }
+    .dash-big-num, .dash-donut-pct { color: #04F77C !important; }
+    .dash-bar-track { background: #eee !important; }
+    .dash-legend-item, .dash-sub, .dash-bar-label, .dash-bar-val { color: #555 !important; }
+    .dash-section-title { color: #000 !important; }
+    .dash-pending-item { background: #f5f5f5 !important; }
+    .dash-pending-match { color: #000 !important; }
+    .dash-pending-date { color: #555 !important; }
+    .dash-pending-edit { display: none !important; }
+  }
+
+  /* ══ PIZARRA CARDS ══ */
+  .pz-btn { font-size:12px;padding:5px 10px;border-radius:var(--radius);border:0.5px solid var(--border-strong);background:var(--bp-surface);color:var(--text-muted);cursor:pointer;transition:all .15s;white-space:nowrap; }
+  .pz-btn:hover { background:var(--bp-card);color:var(--text); }
+  .pz-btn.active { background:var(--bp-lime);border-color:var(--bp-lime);color:#000;font-weight:500; }
+  .pz-card { position:absolute;width:200px;height:130px;cursor:grab;user-select:none;perspective:600px;z-index:1; }
+  .pz-card:active { cursor:grabbing;z-index:999; }
+  .pz-card-inner { position:relative;width:100%;height:100%;transform-style:preserve-3d;transition:transform .45s cubic-bezier(.4,0,.2,1); }
+  .pz-card.flipped .pz-card-inner { transform:rotateY(180deg); }
+  .pz-card-front, .pz-card-back { position:absolute;inset:0;border-radius:var(--radius-lg);border:0.5px solid var(--border-strong);backface-visibility:hidden;-webkit-backface-visibility:hidden;padding:10px 12px;display:flex;flex-direction:column;gap:4px;overflow:hidden; }
+  .pz-card-front { background:var(--bg);border-top:3px solid var(--bp-lime); }
+  .pz-card-back { background:var(--bp-surface);transform:rotateY(180deg);border-top:3px solid #8B7CF6; }
+  .pz-card.connect-mode { box-shadow:0 0 0 2px var(--bp-lime);cursor:crosshair; }
+  .pz-card.connect-source { box-shadow:0 0 0 2px #F5A623; }
+  .pz-card-date { font-size:10px;color:var(--text-muted);flex-shrink:0; }
+  .pz-card-teams { font-size:12px;font-weight:500;color:var(--text);line-height:1.3;flex-shrink:0; }
+  .pz-card-group { font-size:10px;color:var(--text-hint);flex-shrink:0; }
+  .pz-card-dots { display:flex;gap:3px;margin-top:auto;flex-shrink:0; }
+  .pz-back-title { font-size:10px;font-weight:500;color:#8B7CF6;text-transform:uppercase;letter-spacing:.05em;flex-shrink:0; }
+  .pz-action-item { font-size:10px;padding:2px 0;border-bottom:0.5px solid var(--border);white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+  .pz-del { position:absolute;top:4px;right:4px;width:18px;height:18px;border-radius:50%;background:rgba(255,92,92,0.15);border:none;color:#FF5C5C;cursor:pointer;font-size:10px;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s;z-index:10; }
+  .pz-card:hover .pz-del { opacity:1; }
+  .pz-connector { stroke:var(--bp-lime);stroke-width:1.5;fill:none;stroke-dasharray:5 3;opacity:0.7; }
+  .pz-day-group { font-size:10px;font-weight:500;color:var(--text-hint);text-transform:uppercase;letter-spacing:.06em;padding:6px 10px 2px; }
+  .pz-match-item { display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:var(--radius);cursor:pointer;transition:background .1s; }
+  .pz-match-item:hover { background:var(--bp-surface); }
+  #view-pizarra.active { display:flex; }
 </style>
 <!-- SheetJS for Excel export -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -502,14 +547,19 @@
     <span class="nav-subtitle" style="color:var(--bp-lime);font-weight:500">Bplay</span>
   </div>
   <div class="nav-tabs">
-    <button class="nav-tab active" onclick="switchView('timeline', this)">Línea de tiempo</button>
-    <button class="nav-tab" onclick="switchView('editor', this)">Editor de combos</button>
-    <button class="nav-tab" id="alert-tab" onclick="switchView('alerts', this)">Alertas <span id="alert-badge" style="display:none;background:#E24B4A;color:#fff;font-size:10px;padding:1px 6px;border-radius:8px;margin-left:4px"></span></button>
-    <button class="nav-tab" onclick="switchView('dashboard', this)">Dashboard</button>
-    <button class="nav-tab" onclick="switchView('casino', this)">Casino</button>
+    <button class="nav-tab active" onclick="switchView('timeline', this)" data-view="timeline">Línea de tiempo</button>
+    <button class="nav-tab" onclick="switchView('editor', this)" data-view="editor">Editor de combos</button>
+    <button class="nav-tab" id="alert-tab" onclick="switchView('alerts', this)" data-view="alerts">Alertas <span id="alert-badge" style="display:none;background:#E24B4A;color:#fff;font-size:10px;padding:1px 6px;border-radius:8px;margin-left:4px"></span></button>
+    <button class="nav-tab" onclick="switchView('casino', this)" data-view="casino">Casino</button>
+    <button class="nav-tab" onclick="switchView('pizarra', this)" data-view="pizarra">Pizarra</button>
+    <button class="nav-tab" onclick="switchView('dashboard', this)" data-view="dashboard">Dashboard</button>
   </div>
   <div class="nav-actions">
     <button class="theme-toggle" id="theme-btn" onclick="toggleTheme()" title="Cambiar modo">🌙</button>
+    <div style="position:relative;margin:0 4px" id="global-search-wrap">
+      <input type="text" id="global-search" placeholder="🔍 Buscar..." oninput="globalSearch(this.value)" onfocus="if(this.value.length>=2)document.getElementById('global-results').style.display='block'" style="font-size:12px;padding:5px 10px;border:0.5px solid var(--border-strong);border-radius:20px;background:var(--bp-surface);color:var(--text);width:180px;outline:none">
+      <div id="global-results" style="display:none;position:absolute;top:calc(100%+4px);right:0;width:300px;background:var(--bg);border:0.5px solid var(--border-strong);border-radius:var(--radius-lg);box-shadow:0 8px 24px rgba(0,0,0,0.3);z-index:400;max-height:300px;overflow-y:auto"></div>
+    </div>
     <span id="sync-status" style="font-size:11px;color:#888780;margin-right:4px">● Conectando...</span>
     <div class="settings-wrap">
       <button class="settings-btn" id="settings-btn" onclick="toggleSettings()" title="Configuración">⚙️</button>
@@ -526,6 +576,17 @@
         </button>
         <button class="settings-item" onclick="exportHTML();closeSettings()">
           <span class="si-icon">💾</span> Descargar HTML
+        </button>
+        <div class="settings-divider"></div>
+        <div class="settings-divider"></div>
+        <button class="settings-item" onclick="showHistory();closeSettings()">
+          <span class="si-icon">📋</span> Historial de cambios
+        </button>
+        <button class="settings-item" onclick="backupData();closeSettings()">
+          <span class="si-icon">⬇️</span> Backup de datos
+        </button>
+        <button class="settings-item" onclick="triggerRestore();closeSettings()">
+          <span class="si-icon">⬆️</span> Restaurar backup
         </button>
         <div class="settings-divider"></div>
         <button class="settings-item danger" onclick="resetAll();closeSettings()">
@@ -585,6 +646,20 @@
         <div class="editor-match-meta" id="edMatchMeta">—</div>
       </div>
       <div class="action-blocks" id="actionBlocks"></div>
+      <div class="editor-card" id="editorNotesCard" style="display:none">
+        <div class="section-label" style="margin-bottom:6px">Notas del partido</div>
+        <textarea id="match-notes" rows="2" placeholder="Decisiones comerciales, contexto, restricciones..." onblur="saveMatchNotes()" style="width:100%;font-size:12px;padding:7px 10px;border:0.5px solid var(--border-strong);border-radius:var(--radius);background:var(--bg-surface);color:var(--text);resize:vertical;font-family:inherit"></textarea>
+      </div>
+      <div class="editor-card" id="editorApprovalCard" style="display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+          <div><div class="section-label" style="margin-bottom:2px">Estado del combo</div><div id="approval-current" style="font-size:12px;color:var(--text-muted)">Borrador</div></div>
+          <div style="display:flex;gap:6px">
+            <button onclick="setApproval(activeId,'draft')" style="font-size:11px;padding:4px 10px;border-radius:10px;border:0.5px solid var(--border-strong);background:transparent;color:var(--text-muted);cursor:pointer">Borrador</button>
+            <button onclick="setApproval(activeId,'review')" style="font-size:11px;padding:4px 10px;border-radius:10px;border:0.5px solid #F5A623;background:rgba(245,166,35,0.1);color:#F5A623;cursor:pointer">En revisión</button>
+            <button onclick="setApproval(activeId,'approved')" style="font-size:11px;padding:4px 10px;border-radius:10px;border:0.5px solid #04F77C;background:rgba(4,247,124,0.1);color:#04F77C;cursor:pointer">Aprobado</button>
+          </div>
+        </div>
+      </div>
       <div class="combo-summary" id="comboSummary">
         <div class="combo-sum-header">
           <div>
@@ -604,6 +679,19 @@
     </div>
   </div>
 </div>
+
+<!-- History modal -->
+<div id="history-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:300;align-items:center;justify-content:center">
+  <div style="background:var(--bg);border:0.5px solid var(--border-strong);border-radius:var(--radius-lg);width:500px;max-width:calc(100vw - 32px);max-height:80vh;display:flex;flex-direction:column">
+    <div style="padding:14px 16px;border-bottom:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+      <div style="font-size:14px;font-weight:500">Historial de cambios</div>
+      <button onclick="document.getElementById('history-modal').style.display='none'" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;line-height:1">✕</button>
+    </div>
+    <div id="history-list" style="overflow-y:auto;flex:1;padding:12px 16px"></div>
+  </div>
+</div>
+<!-- Hidden file input for backup restore -->
+<input type="file" id="restore-input" accept=".json" style="display:none" onchange="restoreData(this)">
 
 <!-- ═══════════════ API CONFIG MODAL ═══════════════ -->
 <div id="api-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:200;align-items:center;justify-content:center">
@@ -635,6 +723,16 @@
 
 <!-- ═══════════════ DASHBOARD VIEW ═══════════════ -->
 <div id="view-dashboard" class="view">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px" id="dashboard-topbar">
+    <div>
+      <div style="font-size:15px;font-weight:500;color:var(--text)">Dashboard — Mundial 2026</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-top:2px">Resumen ejecutivo · Bplay</div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn" onclick="exportDashboardPDF()">Exportar PDF</button>
+      <button class="btn btn-primary" onclick="exportDashboardPNG()">Exportar imagen</button>
+    </div>
+  </div>
   <div id="dashboard-body"></div>
 </div>
 
@@ -644,6 +742,40 @@
 </div>
 
 <!-- ═══════════════ ALERTS VIEW ═══════════════ -->
+<div id="view-pizarra" class="view" style="padding:0;overflow:hidden;flex-direction:column">
+  <div id="pizarra-toolbar" style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:var(--bp-dark);border-bottom:0.5px solid var(--border-strong);gap:8px;flex-wrap:wrap;flex-shrink:0;z-index:10;position:relative">
+    <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap">
+      <button class="pz-btn active" id="pz-tool-select" onclick="setTool('select')" title="Seleccionar / voltear">↖ Seleccionar</button>
+      <button class="pz-btn" id="pz-tool-connect" onclick="setTool('connect')" title="Conectar partidos">⟵⟶ Conectar</button>
+      <div style="width:0.5px;height:20px;background:var(--border-strong);margin:0 4px"></div>
+      <button class="pz-btn" onclick="addMatchCards()">＋ Agregar partidos</button>
+      <button class="pz-btn" onclick="clearConnections()">✕ Conexiones</button>
+      <button class="pz-btn" onclick="resetPizarra()">↺ Resetear</button>
+      <div style="width:0.5px;height:20px;background:var(--border-strong);margin:0 4px"></div>
+      <span style="font-size:11px;color:var(--text-hint)" id="pz-hint">Agregá partidos · Arrastrá · Click para voltear</span>
+    </div>
+    <button class="pz-btn" onclick="exportPizarra()">Exportar PNG</button>
+  </div>
+  <div id="pizarra-canvas" style="position:relative;flex:1;overflow:auto;background:var(--bp-black);background-image:radial-gradient(circle,rgba(255,255,255,0.06) 1px,transparent 1px);background-size:24px 24px;min-height:600px">
+    <svg id="pz-svg" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible"></svg>
+    <div id="pz-cards" style="position:relative;width:100%;height:100%"></div>
+  </div>
+  <!-- Match selector modal -->
+  <div id="pz-match-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:500;align-items:center;justify-content:center">
+    <div style="background:var(--bg);border:0.5px solid var(--border-strong);border-radius:var(--radius-lg);width:480px;max-width:calc(100vw - 32px);max-height:80vh;display:flex;flex-direction:column">
+      <div style="padding:14px 16px;border-bottom:0.5px solid var(--border);display:flex;align-items:center;gap:8px">
+        <input type="text" id="pz-search" placeholder="Buscar partido..." oninput="filterPzMatches(this.value)" style="flex:1;padding:6px 10px;font-size:13px;border:0.5px solid var(--border-strong);border-radius:var(--radius);background:var(--bg-surface);color:var(--text)">
+        <button onclick="closePzModal()" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;line-height:1">✕</button>
+      </div>
+      <div id="pz-match-list" style="overflow-y:auto;flex:1;padding:8px"></div>
+      <div style="padding:12px 16px;border-top:0.5px solid var(--border);display:flex;justify-content:flex-end;gap:8px">
+        <button class="btn" onclick="closePzModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="confirmAddCards()">Agregar seleccionados</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="view-alerts" class="view">
   <div id="alerts-body"></div>
 </div>
@@ -912,6 +1044,29 @@ function normalizeCombo(c){
     casino: toArray(c.casino)
   };
 }
+let matchNotes={};
+const REF_NOTES=firebaseReady&&db?db.ref('matchNotes'):null;
+function saveMatchNotes(){
+  if(!activeId)return;
+  const val=document.getElementById('match-notes')?.value||'';
+  if(val)matchNotes[activeId]=val;else delete matchNotes[activeId];
+  if(REF_NOTES)REF_NOTES.set(matchNotes).catch(()=>{});
+}
+function loadMatchNotes(){if(!REF_NOTES)return;REF_NOTES.on('value',snap=>{matchNotes=snap.val()||{};});}
+
+let approvals={};
+const APPROVAL_LABELS={draft:'Borrador',review:'En revisión',approved:'Aprobado'};
+const APPROVAL_COLORS={draft:'var(--text-muted)',review:'#F5A623',approved:'#04F77C'};
+const REF_APPROVALS=firebaseReady&&db?db.ref('approvals'):null;
+function setApproval(id,status){
+  approvals[id]=status;
+  if(REF_APPROVALS)REF_APPROVALS.set(approvals).catch(()=>{});
+  const el=document.getElementById('approval-current');
+  if(el){el.textContent=APPROVAL_LABELS[status];el.style.color=APPROVAL_COLORS[status];}
+  renderTimeline();
+}
+function loadApprovals(){if(!REF_APPROVALS)return;REF_APPROVALS.on('value',snap=>{approvals=snap.val()||{};});}
+
 function getCombo(id){
   if(!combos[id]) combos[id]={promo:[],push:[],boost:[],live:[],casino:[]};
   return combos[id];
@@ -1195,7 +1350,7 @@ function buildSidebar(){
       el.className='match-list-item'+(activeId===id?' active':'');
       el.dataset.search=(m.t+' '+m.g+' '+day.date).toLowerCase();
       el.innerHTML=`<div class="mli-teams">${m.t}</div>
-        <div class="mli-meta"><span>${m.h} hs · ${m.g}</span>${comboDots(id)}</div>`;
+        <div class="mli-meta"><span>${m.h.replace("*"," (+1d)")} hs · ${m.g}</span>${comboDots(id)}</div>`;
       el.onclick=()=>selectMatch(id);
       list.appendChild(el);
     });
@@ -1212,7 +1367,13 @@ function selectMatch(id){
   activeId=id;
   const m=ALL.find(x=>x.id===id);
   document.getElementById('edMatchTitle').textContent=m.t;
-  document.getElementById('edMatchMeta').textContent=`${m.label} · ${m.day} · ${m.h} hs (AR) · ${m.g}`;
+  document.getElementById('edMatchMeta').textContent=`${m.label} · ${m.day} · ${m.h.replace("*"," (+1d)")} hs (AR) · ${m.g}`;
+  const nc=document.getElementById('editorNotesCard');if(nc)nc.style.display='block';
+  const ne=document.getElementById('match-notes');if(ne)ne.value=matchNotes[id]||'';
+  const ac=document.getElementById('editorApprovalCard');if(ac)ac.style.display='block';
+  const ap=approvals[id]||'draft';
+  const apEl=document.getElementById('approval-current');
+  if(apEl){apEl.textContent=APPROVAL_LABELS[ap];apEl.style.color=APPROVAL_COLORS[ap];}
   buildSidebar();
   renderBlocks();
 }
@@ -1281,12 +1442,13 @@ function updateSummary(){
 
 function saveCombo(){
   persist();
-  buildSidebar();
-  renderTimeline();
-  renderDashboard();
+  if(firebaseReady&&db&&activeId){
+    const m=ALL.find(x=>x.id===activeId);
+    db.ref('history').push({matchId:activeId,matchName:m?.t||'',ts:new Date().toISOString(),combo:JSON.parse(JSON.stringify(getCombo(activeId)))}).catch(()=>{});
+  }
+  buildSidebar(); renderTimeline(); renderDashboard();
   const t=document.getElementById('editorToast');
-  t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'),2000);
+  t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2000);
 }
 
 function clearCombo(){
@@ -1684,7 +1846,7 @@ function buildAlertRow(m){
     <div class="alert-divider"></div>
     <div class="alert-info">
       <div class="alert-match">${m.t}</div>
-      <div class="alert-meta">${m.day} · ${m.h} hs (AR) · ${m.g}</div>
+      <div class="alert-meta">${m.day} · ${m.h.replace("*"," (+1d)")} hs (AR) · ${m.g}</div>
     </div>
     <button class="alert-tc ${sent?'sent':'pending-tc'}" onclick="toggleTC('${m.id}')" title="${sent?'Marcar como pendiente':'Marcar como enviado'}">
       ${sent?'T&C enviado ✓':'Enviar T&C'}
@@ -1720,10 +1882,328 @@ function switchView(view,btn){
   if(view==='alerts') renderAlerts();
   if(view==='dashboard') renderDashboard();
   if(view==='casino') renderCasino();
+  if(view==='pizarra'){ loadPizarra(); renderPizarra(); }
+}
+
+
+// ══════════════════════════════════════
+// PIZARRA
+// ══════════════════════════════════════
+let pzCards = [];
+let pzConns = [];
+let pzTool = 'select';
+let pzConnSource = null;
+let pzDragging = null;
+let pzDragOffset = {x:0, y:0};
+let pzSelectedForAdd = new Set();
+const PZ_STORAGE = 'bplay_pizarra_v1';
+
+function savePizarra(){
+  try{ localStorage.setItem(PZ_STORAGE, JSON.stringify({cards:pzCards, conns:pzConns})); }catch(e){}
+  if(firebaseReady && db){
+    db.ref('pizarra').set({cards:pzCards, conns:pzConns}).catch(e=>console.warn('Pizarra sync error',e));
+  }
+}
+function loadPizarra(){
+  // First load from localStorage for instant render
+  try{
+    const s = localStorage.getItem(PZ_STORAGE);
+    if(s){ const d=JSON.parse(s); pzCards=d.cards||[]; pzConns=d.conns||[]; }
+  }catch(e){}
+  // Then sync from Firebase
+  if(firebaseReady && db){
+    db.ref('pizarra').once('value', snap=>{
+      const d = snap.val();
+      if(d){ pzCards=d.cards||[]; pzConns=d.conns||[]; renderPizarra(); }
+    });
+  }
+}
+
+function setTool(tool){
+  pzTool = tool;
+  pzConnSource = null;
+  document.querySelectorAll('.pz-btn[id^="pz-tool"]').forEach(b=>b.classList.remove('active'));
+  const btn = document.getElementById('pz-tool-'+tool);
+  if(btn) btn.classList.add('active');
+  const hint = document.getElementById('pz-hint');
+  if(hint) hint.textContent = tool==='connect'
+    ? 'Click en tarjeta origen → luego en destino para conectar. Click en par ya conectado para desconectar.'
+    : 'Arrastrá las tarjetas · Click para voltear y ver acciones';
+  renderPizarra();
+}
+
+function addMatchCards(){
+  pzSelectedForAdd.clear();
+  const modal = document.getElementById('pz-match-modal');
+  modal.style.display = 'flex';
+  filterPzMatches('');
+}
+function closePzModal(){
+  document.getElementById('pz-match-modal').style.display = 'none';
+  pzSelectedForAdd.clear();
+}
+function filterPzMatches(q){
+  const list = document.getElementById('pz-match-list');
+  if(!list) return;
+  list.innerHTML = '';
+  const existing = new Set(pzCards.map(c=>c.matchId));
+  let lastDay = '';
+  const filtered = ALL.filter(m=>
+    !q || m.t.toLowerCase().includes(q.toLowerCase()) || m.day.toLowerCase().includes(q.toLowerCase())
+  );
+  filtered.forEach(m=>{
+    if(m.day !== lastDay){
+      const grp = document.createElement('div');
+      grp.className = 'pz-day-group';
+      grp.textContent = m.day;
+      list.appendChild(grp);
+      lastDay = m.day;
+    }
+    const alreadyAdded = existing.has(m.id);
+    const item = document.createElement('div');
+    item.className = 'pz-match-item';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.id = 'pzc-'+m.id;
+    cb.disabled = alreadyAdded;
+    cb.checked = alreadyAdded || pzSelectedForAdd.has(m.id);
+    cb.style.accentColor = 'var(--bp-lime)';
+    cb.style.cursor = alreadyAdded ? 'default' : 'pointer';
+    cb.onchange = ()=>{ if(cb.checked) pzSelectedForAdd.add(m.id); else pzSelectedForAdd.delete(m.id); };
+    const lbl = document.createElement('label');
+    lbl.htmlFor = 'pzc-'+m.id;
+    lbl.style.flex = '1';
+    lbl.style.cursor = alreadyAdded ? 'default' : 'pointer';
+    lbl.innerHTML = `<div style="font-size:12px;color:var(--text)">${m.t}</div><div style="font-size:11px;color:var(--text-muted)">${m.h.replace("*"," (+1d)")} hs · ${m.g}</div>`;
+    item.appendChild(cb);
+    item.appendChild(lbl);
+    list.appendChild(item);
+  });
+}
+function confirmAddCards(){
+  const existing = new Set(pzCards.map(c=>c.matchId));
+  let col = 0;
+  pzSelectedForAdd.forEach(mid=>{
+    if(existing.has(mid)) return;
+    const x = 40 + (col%4)*220;
+    const y = 40 + Math.floor(col/4)*160;
+    pzCards.push({id:'pc-'+Date.now()+'-'+Math.random().toString(36).slice(2,6), matchId:mid, x, y, flipped:false});
+    col++;
+  });
+  closePzModal();
+  savePizarra();
+  renderPizarra();
+}
+
+function renderPizarra(){
+  const view = document.getElementById('view-pizarra');
+  if(!view || !view.classList.contains('active')) return;
+
+  const cardsEl = document.getElementById('pz-cards');
+  const svg = document.getElementById('pz-svg');
+  const canvas = document.getElementById('pizarra-canvas');
+  if(!cardsEl || !svg || !canvas) return;
+
+  // Size canvas
+  const maxY = pzCards.reduce((m,c)=>Math.max(m,c.y+160), 600);
+  const maxX = pzCards.reduce((m,c)=>Math.max(m,c.x+220), 800);
+  cardsEl.style.width = Math.max(maxX+80, canvas.clientWidth)+'px';
+  cardsEl.style.height = Math.max(maxY+80, 600)+'px';
+
+  // Clear
+  cardsEl.innerHTML = '';
+  svg.innerHTML = '';
+
+  // Draw connections
+  pzConns.forEach(conn=>{
+    const fc = pzCards.find(c=>c.id===conn.from);
+    const tc = pzCards.find(c=>c.id===conn.to);
+    if(!fc||!tc) return;
+    const x1=fc.x+100, y1=fc.y+65, x2=tc.x+100, y2=tc.y+65;
+    const cx=(x1+x2)/2;
+    const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('d',`M${x1},${y1} C${cx},${y1} ${cx},${y2} ${x2},${y2}`);
+    path.setAttribute('class','pz-connector');
+    svg.appendChild(path);
+    const dot = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    dot.setAttribute('cx',(x1+x2)/2); dot.setAttribute('cy',(y1+y2)/2);
+    dot.setAttribute('r','5'); dot.setAttribute('fill','var(--bp-lime)');
+    dot.setAttribute('stroke','var(--bp-black)'); dot.setAttribute('stroke-width','2');
+    svg.appendChild(dot);
+  });
+
+  // Draw cards
+  pzCards.forEach(card=>{
+    const m = ALL.find(x=>x.id===card.matchId);
+    if(!m) return;
+    const combo = combos[card.matchId]||{};
+    const allActions = ['promo','push','boost','live','casino'].flatMap(t=>(combo[t]||[]).map(a=>({type:t,text:a})));
+    const dotsHtml = ['promo','push','boost','live','casino'].map(t=>{
+      const filled=(combo[t]||[]).length>0;
+      return `<span style="width:7px;height:7px;border-radius:50%;display:inline-block;background:${filled?TC[t]:'transparent'};border:1.5px solid ${TC[t]};opacity:${filled?1:0.25}"></span>`;
+    }).join('');
+    const isConnMode = pzTool==='connect';
+    const isSource = pzConnSource===card.id;
+
+    const el = document.createElement('div');
+    el.className = 'pz-card'+(card.flipped?' flipped':'')+(isConnMode?' connect-mode':'')+(isSource?' connect-source':'');
+    el.dataset.id = card.id;
+    el.style.cssText = `left:${card.x}px;top:${card.y}px;position:absolute;width:200px;height:130px;`;
+
+    const actionsHtml = allActions.length > 0
+      ? allActions.slice(0,5).map(a=>`<div class="pz-action-item" style="color:${TC[a.type]}">${a.text}</div>`).join('') + (allActions.length>5?`<div style="font-size:10px;color:var(--text-hint);margin-top:2px">+${allActions.length-5} más</div>`:'')
+      : '<div style="font-size:10px;color:var(--text-hint);margin-top:4px">Sin acciones asignadas</div>';
+
+    el.innerHTML = `
+      <div class="pz-card-inner">
+        <div class="pz-card-front" style="background:var(--bg);border:0.5px solid var(--border-strong);border-top:3px solid var(--bp-lime);border-radius:var(--radius-lg);padding:10px 12px;display:flex;flex-direction:column;gap:4px;position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;overflow:hidden">
+          <div style="font-size:10px;color:var(--text-muted)">${m.day} · ${m.h} hs</div>
+          <div style="font-size:12px;font-weight:500;color:var(--text);line-height:1.3">${m.t.replace(' vs ','<span style="color:var(--text-muted);font-weight:400"> vs </span>')}</div>
+          <div style="font-size:10px;color:var(--text-hint)">${m.g}</div>
+          <div style="display:flex;gap:3px;margin-top:auto">${dotsHtml}</div>
+          <button class="pz-del" onclick="deleteCard('${card.id}',event)">✕</button>
+        </div>
+        <div class="pz-card-back" style="background:var(--bp-surface);border:0.5px solid var(--border-strong);border-top:3px solid #8B7CF6;border-radius:var(--radius-lg);padding:10px 12px;display:flex;flex-direction:column;gap:3px;position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;transform:rotateY(180deg);overflow:hidden">
+          <div style="font-size:10px;font-weight:500;color:#8B7CF6;text-transform:uppercase;letter-spacing:.05em">Acciones (${allActions.length})</div>
+          <div style="flex:1;overflow:hidden">${actionsHtml}</div>
+          <button class="pz-del" onclick="deleteCard('${card.id}',event)">✕</button>
+        </div>
+      </div>`;
+
+    // Mousedown → drag or connect
+    let didDrag = false;
+    let startX, startY;
+    const startDrag = (clientX, clientY)=>{
+      pzDragging = card.id;
+      didDrag = false;
+      const rect = el.getBoundingClientRect();
+      pzDragOffset = {x: clientX-rect.left, y: clientY-rect.top};
+      el.style.zIndex = 999;
+    };
+    el.addEventListener('mousedown', e=>{
+      if(e.target.classList.contains('pz-del')) return;
+      if(pzTool==='connect'){ handleConnectClick(card.id); return; }
+      startDrag(e.clientX, e.clientY);
+      e.preventDefault();
+    });
+    el.addEventListener('touchstart', e=>{
+      if(e.target.classList.contains('pz-del')) return;
+      if(pzTool==='connect'){ handleConnectClick(card.id); return; }
+      const t = e.touches[0];
+      startDrag(t.clientX, t.clientY);
+      e.preventDefault();
+    }, {passive:false});
+    el.addEventListener('click', e=>{
+      if(e.target.classList.contains('pz-del')) return;
+      if(pzTool==='connect') return;
+      if(didDrag) return;
+      card.flipped = !card.flipped;
+      savePizarra();
+      renderPizarra();
+    });
+    cardsEl.appendChild(el);
+  });
+
+  // Canvas mouse events for drag
+  canvas.onmousemove = e=>{
+    if(!pzDragging) return;
+    const rect = canvas.getBoundingClientRect();
+    const card = pzCards.find(c=>c.id===pzDragging);
+    if(!card) return;
+    const newX = e.clientX - rect.left - pzDragOffset.x + canvas.scrollLeft;
+    const newY = e.clientY - rect.top - pzDragOffset.y + canvas.scrollTop;
+    if(Math.abs(newX-card.x)>2 || Math.abs(newY-card.y)>2){
+      // mark that we actually dragged
+      const draggingCard = document.querySelector(`.pz-card[data-id="${pzDragging}"]`);
+      if(draggingCard) draggingCard._dragged = true;
+    }
+    card.x = Math.max(0, newX);
+    card.y = Math.max(0, newY);
+    const el = document.querySelector(`.pz-card[data-id="${pzDragging}"]`);
+    if(el){ el.style.left=card.x+'px'; el.style.top=card.y+'px'; }
+    // Rerender connections only
+    svg.innerHTML='';
+    pzConns.forEach(conn=>{
+      const fc=pzCards.find(c=>c.id===conn.from), tc=pzCards.find(c=>c.id===conn.to);
+      if(!fc||!tc) return;
+      const x1=fc.x+100,y1=fc.y+65,x2=tc.x+100,y2=tc.y+65,cx=(x1+x2)/2;
+      const path=document.createElementNS('http://www.w3.org/2000/svg','path');
+      path.setAttribute('d',`M${x1},${y1} C${cx},${y1} ${cx},${y2} ${x2},${y2}`);
+      path.setAttribute('class','pz-connector');
+      svg.appendChild(path);
+      const dot=document.createElementNS('http://www.w3.org/2000/svg','circle');
+      dot.setAttribute('cx',(x1+x2)/2); dot.setAttribute('cy',(y1+y2)/2);
+      dot.setAttribute('r','5'); dot.setAttribute('fill','var(--bp-lime)');
+      dot.setAttribute('stroke','var(--bp-black)'); dot.setAttribute('stroke-width','2');
+      svg.appendChild(dot);
+    });
+  };
+  canvas.onmouseup = ()=>{ if(pzDragging){ savePizarra(); pzDragging=null; } };
+  canvas.onmouseleave = ()=>{ if(pzDragging){ savePizarra(); pzDragging=null; } };
+  canvas.ontouchmove = e=>{
+    if(!pzDragging) return;
+    const t=e.touches[0];
+    const rect=canvas.getBoundingClientRect();
+    const card=pzCards.find(c=>c.id===pzDragging);
+    if(!card) return;
+    card.x=Math.max(0,t.clientX-rect.left-pzDragOffset.x+canvas.scrollLeft);
+    card.y=Math.max(0,t.clientY-rect.top-pzDragOffset.y+canvas.scrollTop);
+    const el=document.querySelector('.pz-card[data-id="'+pzDragging+'"]');
+    if(el){el.style.left=card.x+'px';el.style.top=card.y+'px';}
+    e.preventDefault();
+  };
+  canvas.ontouchend = ()=>{ if(pzDragging){ savePizarra(); pzDragging=null; } };
+}
+
+function handleConnectClick(cardId){
+  if(!pzConnSource){
+    pzConnSource = cardId;
+    renderPizarra();
+  } else {
+    if(pzConnSource !== cardId){
+      const idx = pzConns.findIndex(c=>(c.from===pzConnSource&&c.to===cardId)||(c.from===cardId&&c.to===pzConnSource));
+      if(idx>=0) pzConns.splice(idx,1);
+      else pzConns.push({from:pzConnSource, to:cardId});
+      savePizarra();
+    }
+    pzConnSource = null;
+    renderPizarra();
+  }
+}
+
+function deleteCard(cardId, e){
+  e.stopPropagation();
+  pzCards = pzCards.filter(c=>c.id!==cardId);
+  pzConns = pzConns.filter(c=>c.from!==cardId&&c.to!==cardId);
+  savePizarra(); renderPizarra();
+}
+function clearConnections(){
+  if(!confirm('¿Borrar todas las conexiones?')) return;
+  pzConns=[]; savePizarra(); renderPizarra();
+}
+function resetPizarra(){
+  if(!confirm('¿Resetear la pizarra? Se borran todas las tarjetas y conexiones.')) return;
+  pzCards=[]; pzConns=[]; pzConnSource=null;
+  savePizarra(); renderPizarra();
+}
+async function exportPizarra(){
+  if(typeof html2canvas==='undefined'){
+    const s=document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+    s.onload=capturePizarra; document.head.appendChild(s);
+  } else capturePizarra();
+}
+async function capturePizarra(){
+  try{
+    const c=await html2canvas(document.getElementById('pizarra-canvas'),{backgroundColor:'#0D0D0D',scale:2,useCORS:true,logging:false});
+    const a=document.createElement('a');
+    a.download=`bplay-pizarra-${new Date().toISOString().slice(0,10)}.png`;
+    a.href=c.toDataURL('image/png'); a.click();
+  }catch(e){ alert('Error: '+e.message); }
 }
 
 function goEdit(id){
-  switchView('editor',document.querySelectorAll('.nav-tab')[1]);
+  switchView('editor',document.querySelector('[data-view=editor]'));
   selectMatch(id);
 }
 
@@ -1843,6 +2323,14 @@ function exportExcel(){
   XLSX.utils.book_append_sheet(wb, ws3, 'Alertas T&C');
 
   // Download
+  const casinoRows=[['Tipo','Título','Fecha inicio','Fecha fin','Hora inicio','Hora fin','Proveedor','Aporte proveedor ($)','Aporte Bplay ($)','Total ($)','Notas']];
+  casinoActions.forEach(a=>casinoRows.push([CASINO_TYPE_LABELS[a.type]||a.type,a.title,a.dateFrom||'',a.dateTo||'',a.timeFrom||'',a.timeTo||'',a.provider||'',a.budgetProvider||0,a.budgetBplay||0,a.budgetTotal||0,a.notes||'']));
+  const ws4=XLSX.utils.aoa_to_sheet(casinoRows.length>1?casinoRows:[casinoRows[0],['Sin acciones casino']]);
+  ws4['!cols']=[{wch:18},{wch:35},{wch:12},{wch:12},{wch:10},{wch:10},{wch:16},{wch:18},{wch:16},{wch:12},{wch:40}];
+  XLSX.utils.book_append_sheet(wb,ws4,'Casino');
+  const notesRows=[['Fecha','Partido','Grupo','Estado','Nota']];
+  ALL.forEach(m=>{const note=matchNotes[m.id];if(note||approvals[m.id])notesRows.push([m.day,m.t,m.g,APPROVAL_LABELS[approvals[m.id]||'draft'],note||'']);});
+  if(notesRows.length>1){const ws5=XLSX.utils.aoa_to_sheet(notesRows);ws5['!cols']=[{wch:14},{wch:32},{wch:14},{wch:14},{wch:60}];XLSX.utils.book_append_sheet(wb,ws5,'Notas y estados');}
   const date = new Date().toISOString().slice(0,10);
   XLSX.writeFile(wb, `bplay-mundial-2026-${date}.xlsx`);
 }
@@ -2112,7 +2600,10 @@ function renderDashboard(){
               <circle cx="54" cy="54" r="44" fill="none" stroke="#8B7CF6" stroke-width="10"
                 stroke-dasharray="${cf} ${ce}" stroke-linecap="round"/>
             </svg>
-            <div class="dash-donut-center"><span class="dash-donut-pct" style="color:#8B7CF6">${totalCasino}</span><span class="dash-donut-lbl">acciones</span></div>
+            <div class="dash-donut-center">
+              <span class="dash-donut-pct" style="color:#8B7CF6">${totalCasino}</span>
+              <span class="dash-donut-lbl">${totalCasino===0?'sin crear':'acciones'}</span>
+            </div>
           </div>
           <div class="dash-legend">
             <div class="dash-legend-item"><div class="dash-legend-dot" style="background:#8B7CF6"></div>${torneos.length} torneo${torneos.length!==1?'s':''}</div>
@@ -2120,7 +2611,7 @@ function renderDashboard(){
             <div class="dash-legend-item"><div class="dash-legend-dot" style="background:#04F77C"></div>${promos.length} promo${promos.length!==1?'s':''}</div>
             ${casinoActions.some(a=>a.budgetTotal)?`<div style="margin-top:6px;font-size:11px;color:var(--text-muted)">Total presupuesto:<br><strong style="color:var(--text);font-size:13px">$${casinoActions.reduce((s,a)=>s+(a.budgetTotal||0),0).toLocaleString('es-AR')}</strong></div>`:''}
             <div style="margin-top:4px">
-              <button class="dash-pending-edit" onclick="switchView('casino',document.querySelectorAll('.nav-tab')[4])" style="color:var(--bp-lime);font-size:11px;background:none;border:none;cursor:pointer;padding:0">Ver Casino →</button>
+              <button class="dash-pending-edit" onclick="switchView('casino',document.querySelector('[data-view=casino]'))" style="color:var(--bp-lime);font-size:11px;background:none;border:none;cursor:pointer;padding:0">Ver Casino →</button>
             </div>
           </div>
         </div>
@@ -2171,7 +2662,7 @@ function renderDashboard(){
       <div class="dash-card">
         <div class="dash-card-title">Detalle Casino independiente</div>
         ${totalCasino === 0
-          ? `<div style="font-size:12px;color:var(--text-muted);margin-top:8px">Sin acciones creadas. <button class="dash-pending-edit" onclick="switchView('casino',document.querySelectorAll('.nav-tab')[4])" style="color:var(--bp-lime);font-size:12px;background:none;border:none;cursor:pointer;padding:0">Ir a Casino →</button></div>`
+          ? `<div style="font-size:12px;color:var(--text-muted);margin-top:8px">Sin acciones creadas. <button class="dash-pending-edit" onclick="switchView('casino',document.querySelector('[data-view=casino]'))" style="color:var(--bp-lime);font-size:12px;background:none;border:none;cursor:pointer;padding:0">Ir a Casino →</button></div>`
           : `<div style="display:flex;flex-direction:column;gap:10px;margin-top:6px">
               ${[{type:'torneo',items:torneos,color:'#8B7CF6',icon:'🎰'},{type:'happyhour',items:happyhour,color:'#F5A623',icon:'⚡'},{type:'promo',items:promos,color:'#04F77C',icon:'🎁'}].map(({type,items,color,icon})=>
                 items.length === 0 ? '' : `
@@ -2412,6 +2903,180 @@ function deleteCasinoAction(id){
   renderCasino();
 }
 
+// ── DASHBOARD EXPORT ──
+function exportDashboardPDF(){
+  // Switch to dashboard if not already there
+  const dashView = document.getElementById('view-dashboard');
+  const wasActive = dashView.classList.contains('active');
+  if(!wasActive){
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    dashView.classList.add('active');
+  }
+  // Hide topbar temporarily
+  document.getElementById('dashboard-topbar').style.display='none';
+  window.print();
+  document.getElementById('dashboard-topbar').style.display='';
+  if(!wasActive){
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    document.getElementById('view-timeline').classList.add('active');
+  }
+}
+
+async function exportDashboardPNG(){
+  const body = document.getElementById('dashboard-body');
+  const topbar = document.getElementById('dashboard-topbar');
+  if(!body){ alert('No hay datos en el dashboard.'); return; }
+
+  // Use html2canvas if available, otherwise fallback to print
+  if(typeof html2canvas === 'undefined'){
+    // Load html2canvas dynamically
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+    script.onload = () => captureAndDownload(body, topbar);
+    document.head.appendChild(script);
+  } else {
+    captureAndDownload(body, topbar);
+  }
+}
+
+async function captureAndDownload(body, topbar){
+  try {
+    topbar.style.display='none';
+    const canvas = await html2canvas(body, {
+      backgroundColor: '#1A1A1A',
+      scale: 2,
+      useCORS: true,
+      logging: false
+    });
+    topbar.style.display='';
+    const link = document.createElement('a');
+    link.download = `bplay-dashboard-mundial-2026-${new Date().toISOString().slice(0,10)}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  } catch(e) {
+    topbar.style.display='';
+    alert('Error al exportar. Intentá con Exportar PDF.');
+  }
+}
+
+// ── BACKUP & RESTORE ──
+function backupData(){
+  const timestamp = new Date().toISOString().slice(0,16).replace('T',' ');
+  const backup = {
+    version: 2,
+    timestamp,
+    combos,
+    tcSent,
+    casinoActions,
+    meta: {
+      totalMatches: ALL.length,
+      combosCount: Object.keys(combos).length,
+      casinoCount: casinoActions.length
+    }
+  };
+  const json = JSON.stringify(backup, null, 2);
+  const blob = new Blob([json], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `bplay-mundial-2026-backup-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  setSyncStatus('ok');
+}
+
+function triggerRestore(){
+  if(!confirm('Restaurar un backup va a reemplazar todos los combos, T&C y acciones de casino actuales. ¿Continuar?')) return;
+  document.getElementById('restore-input').click();
+}
+
+function restoreData(input){
+  const file = input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+
+      // Validate structure
+      if(!data.combos && !data.casinoActions){
+        alert('El archivo no parece un backup válido de Bplay Mundial 2026.');
+        return;
+      }
+
+      // Restore combos
+      if(data.combos){
+        combos = {};
+        Object.entries(data.combos).forEach(([k,v])=>{
+          if(v && typeof v==='object') combos[k] = normalizeCombo(v);
+        });
+      }
+
+      // Restore T&C
+      if(data.tcSent) tcSent = data.tcSent;
+
+      // Restore casino actions
+      if(data.casinoActions) casinoActions = Array.isArray(data.casinoActions)
+        ? data.casinoActions
+        : Object.values(data.casinoActions);
+
+      // Push everything to Firebase
+      persist();
+      if(REF_TC) REF_TC.set(tcSent);
+      if(REF_CASINO) REF_CASINO.set(casinoActions.length ? casinoActions : null);
+
+      // Re-render all views
+      renderTimeline();
+      buildSidebar();
+      renderAlerts();
+      renderDashboard();
+      renderCasino();
+
+      const meta = data.meta || {};
+      alert(`Backup restaurado correctamente.\n\nFecha del backup: ${data.timestamp||'desconocida'}\nCombos: ${Object.keys(combos).length}\nAcciones casino: ${casinoActions.length}`);
+      setSyncStatus('ok');
+    } catch(err) {
+      alert('Error al leer el archivo: ' + err.message);
+    }
+    // Reset input so same file can be selected again
+    input.value = '';
+  };
+  reader.readAsText(file);
+}
+
+function globalSearch(q){
+  const res=document.getElementById('global-results');
+  if(!q||q.length<2){res.style.display='none';return;}
+  const ql=q.toLowerCase(),hits=[];
+  ALL.forEach(m=>{if(m.t.toLowerCase().includes(ql)||m.day.toLowerCase().includes(ql))hits.push({type:'match',label:m.t,sub:m.day+' · '+m.h+' hs',id:m.id});});
+  ALL.forEach(m=>{const c=combos[m.id]||{};['promo','push','boost','live','casino'].forEach(t=>{(c[t]||[]).forEach(a=>{if(a.toLowerCase().includes(ql))hits.push({type:'action',label:a,sub:m.t+' — '+TL[t],id:m.id});});});});
+  casinoActions.forEach(a=>{if(a.title.toLowerCase().includes(ql))hits.push({type:'casino',label:a.title,sub:CASINO_TYPE_LABELS[a.type],id:a.id});});
+  res.style.display=hits.length?'block':'none';
+  res.innerHTML=hits.slice(0,10).map(h=>`<div onclick="handleGlobalResult('${h.id}','${h.type}')" style="padding:8px 12px;cursor:pointer;border-bottom:0.5px solid var(--border);display:flex;gap:8px" onmouseover="this.style.background='var(--bp-surface)'" onmouseout="this.style.background=''"><span style="font-size:14px;flex-shrink:0">${h.type==='match'?'📅':h.type==='casino'?'🎰':'🏷️'}</span><div><div style="font-size:12px;color:var(--text)">${h.label}</div><div style="font-size:11px;color:var(--text-muted)">${h.sub}</div></div></div>`).join('')+(hits.length>10?`<div style="padding:8px 12px;font-size:11px;color:var(--text-muted)">+${hits.length-10} más</div>`:'');
+}
+function handleGlobalResult(id,type){
+  document.getElementById('global-results').style.display='none';
+  document.getElementById('global-search').value='';
+  if(type==='match'||type==='action'){switchView('editor',document.querySelector('[data-view=editor]'));selectMatch(id);}
+  else switchView('casino',document.querySelector('[data-view=casino]'));
+}
+document.addEventListener('click',e=>{if(!document.getElementById('global-search-wrap')?.contains(e.target))document.getElementById('global-results').style.display='none';});
+
+function showHistory(){
+  const modal=document.getElementById('history-modal');
+  modal.style.display='flex';
+  const list=document.getElementById('history-list');
+  list.innerHTML='<div style="font-size:12px;color:var(--text-muted);padding:8px 0">Cargando...</div>';
+  if(!firebaseReady||!db){list.innerHTML='<div style="font-size:12px;color:var(--text-muted)">No disponible en modo local.</div>';return;}
+  db.ref('history').limitToLast(30).once('value',snap=>{
+    const data=snap.val();
+    if(!data){list.innerHTML='<div style="font-size:12px;color:var(--text-muted)">Sin historial aún.</div>';return;}
+    list.innerHTML=Object.values(data).reverse().map(e=>{
+      const ts=new Date(e.ts),timeStr=ts.toLocaleDateString('es-AR')+' '+ts.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
+      const total=['promo','push','boost','live','casino'].reduce((a,t)=>a+(e.combo?.[t]?.length||0),0);
+      return `<div style="padding:10px 0;border-bottom:0.5px solid var(--border)"><div style="display:flex;justify-content:space-between;gap:8px"><div style="font-size:12px;font-weight:500;color:var(--text)">${e.matchName||e.matchId}</div><div style="font-size:11px;color:var(--text-muted);white-space:nowrap">${timeStr}</div></div><div style="font-size:11px;color:var(--text-muted);margin-top:2px">${total} acción${total!==1?'es':''} guardadas</div></div>`;
+    }).join('');
+  });
+}
+
 // ── SETTINGS MENU ──
 function toggleSettings(){
   const btn = document.getElementById('settings-btn');
@@ -2445,12 +3110,19 @@ function initTheme(){
   document.getElementById('theme-btn').textContent = saved==='light' ? '☀️' : '🌙';
 }
 
-// Auto-refresh status (live/pending/finished) every 30s
+// Resize pizarra canvas on window resize
+window.addEventListener('resize', ()=>{ if(document.getElementById('view-pizarra')?.classList.contains('active')) renderPizarra(); });
+
+// Auto-refresh status every 30s
 setInterval(()=>{ renderTimeline(); renderAlerts(); renderDashboard(); }, 30000);
 // Boot — Firebase listeners or local fallback
 initTheme();
 load();
 loadCasinoActions();
+loadMatchNotes();
+loadApprovals();
+loadMatchNotes();
+loadApprovals();
 </script>
 </body>
 </html>
