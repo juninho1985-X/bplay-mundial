@@ -660,7 +660,7 @@
       <div class="filters-panel" id="filters-panel">
         <button class="filter-btn active" onclick="filterTL('all',this)">Todos</button>
         <button class="filter-btn" onclick="filterTL('lat',this)">LATAM</button>
-        <button class="filter-btn" onclick="filterTL('hot',this)">Europeos</button>
+        <button class="filter-btn" onclick="filterTL('hot',this)">Destacados</button>
         <button class="filter-btn" onclick="filterTL('gold',this)">Estelares</button>
         <button class="filter-btn" onclick="filterTL('ko',this)">Eliminatorias</button>
         <button class="filter-btn" onclick="filterTL('combo',this)">Con acciones</button>
@@ -872,7 +872,7 @@ const DAYS=[
   ]},
   {date:"Sáb 13 jun",color:"#1D9E75",label:"Fase de grupos",matches:[
     {t:"Qatar vs Suiza",h:"16:00",g:"Grupo B",tags:[]},
-    {t:"Brasil vs Marruecos",h:"19:00",g:"Grupo C",tags:["lat","gold","hot"]},
+    {t:"Brasil vs Marruecos",h:"19:00",g:"Grupo C",tags:["lat","gold"]},
     {t:"Haití vs Escocia",h:"22:00",g:"Grupo C",tags:[]},
     {t:"Australia vs Turquía",h:"01:00*",g:"Grupo D",tags:[]}
   ]},
@@ -1120,6 +1120,25 @@ function normalizeCombo(c){
 }
 let matchNotes={};
 const REF_NOTES=firebaseReady&&db?db.ref('matchNotes'):null;
+let starredOverrides={};
+const REF_STARRED = firebaseReady&&db ? db.ref('starred') : null;
+function isEstelar(m){
+  if(starredOverrides[m.id]!==undefined) return starredOverrides[m.id];
+  return m.tags&&m.tags.includes('gold');
+}
+function toggleEstelar(id,e){
+  e.stopPropagation();
+  const m=ALL.find(x=>x.id===id);
+  if(!m) return;
+  starredOverrides[id]=!isEstelar(m);
+  if(REF_STARRED) REF_STARRED.set(starredOverrides).catch(()=>{});
+  renderTimeline();
+}
+function loadStarred(){
+  if(!REF_STARRED) return;
+  REF_STARRED.on('value',snap=>{starredOverrides=snap.val()||{};renderTimeline();});
+}
+
 function saveMatchNotes(){
   if(!activeId)return;
   const val=document.getElementById('match-notes')?.value||'';
@@ -1323,10 +1342,11 @@ function renderTimeline(){
       const id=m.id;
       const size=comboSize(id);
       if(size>0) totalCombos++;
-      const gold=m.tags.includes('gold');
-      const badges=m.tags.map(t=>`<span class="badge badge-${t}">${t==='gold'?'Estelar':t==='lat'?'LATAM':t==='hot'?'Europeo':'KO'}</span>`).join('');
+      const gold=isEstelar(m);
+      const badges=m.tags.map(t=>`<span class="badge badge-${t}">${t==='gold'?'Estelar':t==='lat'?'LATAM':t==='hot'?'Destacado':'KO'}</span>`).join('');
       const item=document.createElement('div');
-      item.className='tl-item status-'+getStatus(id)+(gold?' starred':'')+(size>0?' has-combo':'');
+      const estelar=isEstelar(m);
+      item.className='tl-item status-'+getStatus(id)+(estelar?' starred':'')+(size>0?' has-combo':'');
       const st=getStatus(id);
       const stLabel={pending:'Por comenzar',live:'EN VIVO',finished:'Finalizado'};
       const stCardClass={pending:'',live:' live',finished:' finished'};
@@ -1360,6 +1380,7 @@ function renderTimeline(){
           <div style="margin-top:12px;font-size:10px;font-weight:500;color:#5F5E5A;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Acciones comerciales</div>
           ${buildComboDetail(id)}
           <button class="tl-edit-btn" onclick="goEdit('${id}')">Editar acciones →</button>
+          <button onclick="toggleEstelar('${id}',event)" style="font-size:11px;padding:4px 10px;border-radius:10px;border:0.5px solid ${isEstelar(m)?'var(--amber)':'var(--border-strong)'};background:${isEstelar(m)?'rgba(186,117,23,0.15)':'transparent'};color:${isEstelar(m)?'var(--amber)':'var(--text-muted)'};cursor:pointer;margin-left:4px">${isEstelar(m)?'★ Estelar':'☆ Marcar estelar'}</button>
         </div>
       </div>`;
       strip.appendChild(item);
@@ -1615,28 +1636,48 @@ async function fetchOdds(matchId){
   const cached = oddsCache[matchId];
   if(cached && Date.now()-cached.ts < ODDS_TTL) return cached.data;
 
-  const sport = 'soccer_fifa_world_cup_2026';
-  const url = `https://api.the-odds-api.com/v4/sports/${sport}/odds/?apiKey=${oddsApiKey}&regions=eu&markets=h2h,totals,btts&oddsFormat=decimal`;
+  // Try multiple possible sport keys for World Cup 2026
+  const sportKeys = ['soccer_fifa_world_cup','soccer_fifa_world_cup_2026','soccer_world_cup_2026'];
+  let games = null;
+  let usedKey = null;
+
+  for(const sport of sportKeys){
+    try{
+      const url = `https://api.the-odds-api.com/v4/sports/${sport}/odds/?apiKey=${oddsApiKey}&regions=eu&markets=h2h,totals,btts&oddsFormat=decimal`;
+      const res = await fetch(url);
+      if(res.status===404) continue;
+      if(!res.ok) continue;
+      const data = await res.json();
+      if(Array.isArray(data) && data.length > 0){ games=data; usedKey=sport; break; }
+    }catch(e){ continue; }
+  }
 
   try{
-    const res = await fetch(url);
-    if(res.status===404){
-      // Sport key not yet available in The Odds API (tournament hasn't started)
+    if(!games){
       return {unavailable: true};
     }
-    if(!res.ok) return null;
-    const games = await res.json();
 
-    // Match by team names
-    const home = normalizeName(m.t.split(' vs ')[0].trim());
-    const away = normalizeName(m.t.split(' vs ')[1]?.trim()||'');
+    // Match by team names — flexible matching
+    const t1es = m.t.split(' vs ')[0].trim();
+    const t2es = m.t.split(' vs ')[1]?.trim()||'';
+    const home = normalizeName(t1es);
+    const away = normalizeName(t2es);
+
+    function nameMatch(apiName, localName){
+      const a=apiName.toLowerCase(), l=localName.toLowerCase();
+      return a.includes(l)||l.includes(a)||a.split(' ').some(w=>l.includes(w)&&w.length>3);
+    }
 
     const game = games.find(g=>{
       const ht=g.home_team||''; const at=g.away_team||'';
-      return (ht.includes(home)||home.includes(ht)||at.includes(away)||away.includes(at));
+      return (nameMatch(ht,home)||nameMatch(ht,t1es)) && (nameMatch(at,away)||nameMatch(at,t2es));
+    }) || games.find(g=>{
+      // Try reversed (home/away might be swapped)
+      const ht=g.home_team||''; const at=g.away_team||'';
+      return (nameMatch(ht,away)||nameMatch(ht,t2es)) && (nameMatch(at,home)||nameMatch(at,t1es));
     });
 
-    if(!game){ oddsCache[matchId]={data:null,ts:Date.now()}; return null; }
+    if(!game){ oddsCache[matchId]={data:{unavailable:false,noMatch:true},ts:Date.now()}; return null; }
 
     // Parse all 3 markets from each bookmaker
     const result = [];
@@ -1689,10 +1730,9 @@ function renderOddsSection(id, container){
 
   fetchOdds(id).then(data=>{
     if(data && data.unavailable){
-      section.innerHTML = `<div class="odds-header"><span class="odds-title">Cuotas pre-match</span></div>
-        <div class="odds-error" style="display:flex;align-items:center;gap:8px;padding:10px 0">
-          <span style="font-size:16px">🕐</span>
-          <span>Las cuotas del Mundial 2026 estarán disponibles en The Odds API a partir de junio. El panel se actualizará automáticamente.</span>
+      section.innerHTML = `<div class="odds-header"><span class="odds-title">Cuotas pre-match</span><button class="odds-refresh" onclick="invalidateOdds('${id}')">↻ Reintentar</button></div>
+        <div class="odds-error" style="padding:8px 0;font-size:12px;color:var(--text-muted)">
+          Sin cuotas disponibles para este partido en The Odds API. Verificá la API key en ⚙️ o reintentá más tarde.
         </div>`;
       return;
     }
@@ -3060,6 +3100,7 @@ function backupData(){
     combos,
     tcSent,
     casinoActions,
+    starredOverrides,
     meta: {
       totalMatches: ALL.length,
       combosCount: Object.keys(combos).length,
@@ -3106,6 +3147,7 @@ function restoreData(input){
       if(data.tcSent) tcSent = data.tcSent;
 
       // Restore casino actions
+      if(data.starredOverrides){ starredOverrides=data.starredOverrides; if(REF_STARRED) REF_STARRED.set(starredOverrides).catch(()=>{}); }
       if(data.casinoActions) casinoActions = Array.isArray(data.casinoActions)
         ? data.casinoActions
         : Object.values(data.casinoActions);
@@ -3344,6 +3386,7 @@ function bootApp(){
   loadCasinoActions();
   loadMatchNotes();
   loadApprovals();
+  loadStarred();
   loadCatalog();
   loadPizarra();
 }
