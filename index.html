@@ -600,8 +600,8 @@
     </div>
     <button class="theme-toggle" id="theme-btn" onclick="toggleTheme()" title="Cambiar modo">🌙</button>
     <div style="position:relative;margin:0 4px" id="global-search-wrap">
-      <input type="text" id="global-search" placeholder="🔍 Buscar..." oninput="globalSearch(this.value)" onfocus="if(this.value.length>=2)document.getElementById('global-results').style.display='block'" style="font-size:12px;padding:5px 10px;border:0.5px solid var(--border-strong);border-radius:20px;background:var(--bp-surface);color:var(--text);width:180px;outline:none">
-      <div id="global-results" style="display:none;position:absolute;top:calc(100%+4px);right:0;width:300px;background:var(--bg);border:0.5px solid var(--border-strong);border-radius:var(--radius-lg);box-shadow:0 8px 24px rgba(0,0,0,0.3);z-index:400;max-height:300px;overflow-y:auto"></div>
+      <input type="text" id="global-search" placeholder="🔍 Buscar partido..." oninput="globalSearch(this.value)" onkeydown="if(event.key==='Escape'){tlSearch='';this.value='';this.style.borderColor='';renderTimeline();}" style="font-size:12px;padding:5px 10px;border:0.5px solid var(--border-strong);border-radius:20px;background:var(--bp-surface);color:var(--text);width:200px;outline:none;transition:border-color .15s">
+
     </div>
     <span id="sync-status" style="font-size:11px;color:#888780;margin-right:4px">● Conectando...</span>
     <div class="settings-wrap">
@@ -1057,6 +1057,7 @@ DAYS.forEach((day)=>day.matches.forEach((m)=>{
 let combos={};
 let activeId=null;
 let tlFilter='all';
+let tlSearch='';
 
 // ── FIREBASE ──
 const firebaseConfig = {
@@ -1262,6 +1263,10 @@ function getStatus(id){
 function tlVisible(id){
   const m=ALL.find(x=>x.id===id);
   if(!m) return false;
+  if(tlSearch){
+    const q=tlSearch.toLowerCase();
+    if(!m.t.toLowerCase().includes(q)&&!m.g.toLowerCase().includes(q)&&!m.day.toLowerCase().includes(q)) return false;
+  }
   if(tlFilter==='all') return true;
   if(tlFilter==='combo') return comboSize(id)>0;
   if(tlFilter==='live'||tlFilter==='finished'||tlFilter==='pending') return getStatus(id)===tlFilter;
@@ -1363,6 +1368,9 @@ function renderTimeline(){
     body.appendChild(wrap);
   });
   document.getElementById('tl-combo-count').textContent=totalCombos;
+  if(body.children.length===0&&tlSearch){
+    body.innerHTML=`<div style="text-align:center;padding:48px 24px;color:var(--text-muted);font-size:13px"><div style="font-size:24px;margin-bottom:8px">🔍</div>Sin resultados para "<strong style="color:var(--text)">${tlSearch}</strong>"<br><button onclick="tlSearch='';document.getElementById('global-search').value='';document.getElementById('global-search').style.borderColor='';renderTimeline()" style="margin-top:12px;font-size:12px;padding:5px 14px;border-radius:10px;border:0.5px solid var(--border-strong);background:transparent;color:var(--bp-lime);cursor:pointer">Limpiar búsqueda</button></div>`;
+  }
 }
 
 function tlToggle(topEl){
@@ -1968,6 +1976,11 @@ function switchView(view,btn){
   document.querySelectorAll('.nav-tab').forEach(b=>b.classList.remove('active'));
   document.getElementById('view-'+view).classList.add('active');
   btn.classList.add('active');
+  if(view!=='timeline'&&tlSearch){
+    tlSearch='';
+    const inp=document.getElementById('global-search');
+    if(inp){inp.value='';inp.style.borderColor='';}
+  }
   if(view==='editor'){
     if(!activeId) selectMatch(ALL[0].id);
     else { buildSidebar(); renderBlocks(); }
@@ -3118,23 +3131,23 @@ function restoreData(input){
   reader.readAsText(file);
 }
 
+function getCurrentView(){
+  const active=document.querySelector('.view.active');
+  return active ? active.id.replace('view-','') : 'timeline';
+}
+
 function globalSearch(q){
-  const res=document.getElementById('global-results');
-  if(!q||q.length<2){res.style.display='none';return;}
-  const ql=q.toLowerCase(),hits=[];
-  ALL.forEach(m=>{if(m.t.toLowerCase().includes(ql)||m.day.toLowerCase().includes(ql))hits.push({type:'match',label:m.t,sub:m.day+' · '+m.h+' hs',id:m.id});});
-  ALL.forEach(m=>{const c=combos[m.id]||{};['promo','push','boost','live','casino','marketing'].forEach(t=>{(c[t]||[]).forEach(a=>{if(a.toLowerCase().includes(ql))hits.push({type:'action',label:a,sub:m.t+' — '+TL[t],id:m.id});});});});
-  casinoActions.forEach(a=>{if(a.title.toLowerCase().includes(ql))hits.push({type:'casino',label:a.title,sub:CASINO_TYPE_LABELS[a.type],id:a.id});});
-  res.style.display=hits.length?'block':'none';
-  res.innerHTML=hits.slice(0,10).map(h=>`<div onclick="handleGlobalResult('${h.id}','${h.type}')" style="padding:8px 12px;cursor:pointer;border-bottom:0.5px solid var(--border);display:flex;gap:8px" onmouseover="this.style.background='var(--bp-surface)'" onmouseout="this.style.background=''"><span style="font-size:14px;flex-shrink:0">${h.type==='match'?'📅':h.type==='casino'?'🎰':'🏷️'}</span><div><div style="font-size:12px;color:var(--text)">${h.label}</div><div style="font-size:11px;color:var(--text-muted)">${h.sub}</div></div></div>`).join('')+(hits.length>10?`<div style="padding:8px 12px;font-size:11px;color:var(--text-muted)">+${hits.length-10} más</div>`:'');
+  tlSearch=q.trim();
+  const inp=document.getElementById('global-search');
+  if(inp) inp.style.borderColor=tlSearch?'var(--bp-lime)':'';
+  const view=getCurrentView();
+  if(view==='timeline') renderTimeline();
+  else switchView('timeline',document.querySelector('[data-view=timeline]'));
 }
-function handleGlobalResult(id,type){
-  document.getElementById('global-results').style.display='none';
-  document.getElementById('global-search').value='';
-  if(type==='match'||type==='action'){switchView('editor',document.querySelector('[data-view=editor]'));selectMatch(id);}
-  else switchView('casino',document.querySelector('[data-view=casino]'));
+function getCurrentView(){
+  const a=document.querySelector('.view.active');
+  return a?a.id.replace('view-',''):'timeline';
 }
-document.addEventListener('click',e=>{if(!document.getElementById('global-search-wrap')?.contains(e.target))document.getElementById('global-results').style.display='none';});
 
 function showHistory(){
   const modal=document.getElementById('history-modal');
