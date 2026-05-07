@@ -2280,6 +2280,9 @@ function handleConnectClick(cardId){
 
 function deleteCard(cardId, e){
   e.stopPropagation();
+  const m = ALL.find(x=>x.id===pzCards.find(c=>c.id===cardId)?.matchId);
+  const name = m ? m.t : 'esta tarjeta';
+  if(!confirm(`¿Quitar "${name}" de la pizarra?`)) return;
   pzCards = pzCards.filter(c=>c.id!==cardId);
   pzConns = pzConns.filter(c=>c.from!==cardId&&c.to!==cardId);
   savePizarra(); renderPizarra();
