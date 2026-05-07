@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Roadmap Comercial — Mundial 2026 · Bplay</title>
+<title>Dashboard Comercial Mundial 2026 · Bplay</title>
 <style>
   :root {
     /* bplay brand */
@@ -581,16 +581,16 @@
     <div class="nav-logo">
       <svg viewBox="0 0 16 16"><path d="M8 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zM0 8a8 8 0 1116 0A8 8 0 010 8z"/><path d="M8 4a1 1 0 011 1v3.586l2.207 2.207a1 1 0 01-1.414 1.414l-2.5-2.5A1 1 0 017 9V5a1 1 0 011-1z"/></svg>
     </div>
-    <span class="nav-title">Roadmap Comercial · Mundial 2026</span>
+    <span class="nav-title">Dashboard Comercial Mundial 2026</span>
     <span class="nav-subtitle" style="color:var(--bp-lime);font-weight:500">Bplay</span>
   </div>
   <div class="nav-tabs">
     <button class="nav-tab active" onclick="switchView('timeline', this)" data-view="timeline">Línea de tiempo</button>
-    <button class="nav-tab" onclick="switchView('editor', this)" data-view="editor">Editor de combos</button>
+    <button class="nav-tab" onclick="switchView('editor', this)" data-view="editor">Editor de acciones</button>
     <button class="nav-tab" id="alert-tab" onclick="switchView('alerts', this)" data-view="alerts">Alertas <span id="alert-badge" style="display:none;background:#E24B4A;color:#fff;font-size:10px;padding:1px 6px;border-radius:8px;margin-left:4px"></span></button>
     <button class="nav-tab" onclick="switchView('casino', this)" data-view="casino">Casino</button>
     <button class="nav-tab" onclick="switchView('pizarra', this)" data-view="pizarra">Pizarra</button>
-    <button class="nav-tab" onclick="switchView('dashboard', this)" data-view="dashboard">Dashboard</button>
+    <button class="nav-tab" onclick="switchView('dashboard', this)" data-view="dashboard">Estadísticas</button>
   </div>
   <div class="nav-actions">
     <button class="theme-toggle" id="theme-btn" onclick="toggleTheme()" title="Cambiar modo">🌙</button>
@@ -631,7 +631,7 @@
         </button>
         <div class="settings-divider"></div>
         <button class="settings-item danger" onclick="resetAll();closeSettings()">
-          <span class="si-icon">🗑️</span> Borrar todos los combos
+          <span class="si-icon">🗑️</span> Borrar todas las acciones
         </button>
       </div>
     </div>
@@ -645,7 +645,7 @@
       <div class="stat-chip"><strong>11 jun</strong> <span>inicio</span></div>
       <div class="stat-chip"><strong>19 jul</strong> <span>final</span></div>
       <div class="stat-chip"><strong>104</strong> <span>partidos totales</span></div>
-      <div class="stat-chip"><strong id="tl-combo-count">0</strong> <span>combos guardados</span></div>
+      <div class="stat-chip"><strong id="tl-combo-count">0</strong> <span>acciones guardadas</span></div>
     </div>
     <div class="tl-filters">
       <button class="filters-toggle" id="filters-toggle-btn" onclick="toggleFilters()">
@@ -658,7 +658,7 @@
         <button class="filter-btn" onclick="filterTL('hot',this)">Europeos</button>
         <button class="filter-btn" onclick="filterTL('gold',this)">Estelares</button>
         <button class="filter-btn" onclick="filterTL('ko',this)">Eliminatorias</button>
-        <button class="filter-btn" onclick="filterTL('combo',this)">Con combo</button>
+        <button class="filter-btn" onclick="filterTL('combo',this)">Con acciones</button>
         <button class="filter-btn" onclick="filterTL('live',this)">En vivo</button>
         <button class="filter-btn" onclick="filterTL('finished',this)">Finalizados</button>
         <button class="filter-btn" onclick="filterTL('pending',this)">Por comenzar</button>
@@ -674,7 +674,7 @@
     <div class="editor-sidebar">
       <div class="sidebar-header">
         <div style="font-size:13px;font-weight:500">Partidos</div>
-        <p>Seleccioná para editar el combo</p>
+        <p>Seleccioná para editar acciones</p>
       </div>
       <div class="sidebar-search">
         <input type="text" id="searchInput" placeholder="Buscar partido..." oninput="filterSidebar(this.value)">
@@ -693,7 +693,7 @@
       </div>
       <div class="editor-card" id="editorApprovalCard" style="display:none">
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
-          <div><div class="section-label" style="margin-bottom:2px">Estado del combo</div><div id="approval-current" style="font-size:12px;color:var(--text-muted)">Borrador</div></div>
+          <div><div class="section-label" style="margin-bottom:2px">Estado de acciones</div><div id="approval-current" style="font-size:12px;color:var(--text-muted)">Borrador</div></div>
           <div style="display:flex;gap:6px">
             <button onclick="setApproval(activeId,'draft')" style="font-size:11px;padding:4px 10px;border-radius:10px;border:0.5px solid var(--border-strong);background:transparent;color:var(--text-muted);cursor:pointer">Borrador</button>
             <button onclick="setApproval(activeId,'review')" style="font-size:11px;padding:4px 10px;border-radius:10px;border:0.5px solid #F5A623;background:rgba(245,166,35,0.1);color:#F5A623;cursor:pointer">En revisión</button>
@@ -704,17 +704,17 @@
       <div class="combo-summary" id="comboSummary">
         <div class="combo-sum-header">
           <div>
-            <div class="section-label">Resumen combo</div>
+            <div class="section-label">Resumen acciones</div>
             <div class="combo-total" id="comboTotal">0 acciones</div>
           </div>
           <div class="combo-actions">
             <span class="toast" id="editorToast">Guardado</span>
-            <button class="btn btn-primary" onclick="saveCombo()">Guardar combo</button>
+            <button class="btn btn-primary" onclick="saveCombo()">Guardar acciones</button>
             <button class="btn" onclick="clearCombo()">Limpiar</button>
           </div>
         </div>
         <div class="combo-all-tags" id="comboAllTags">
-          <span class="combo-empty">El combo está vacío.</span>
+          <span class="combo-empty">Sin acciones asignadas.</span>
         </div>
       </div>
     </div>
@@ -789,7 +789,7 @@
 <div id="view-dashboard" class="view">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px" id="dashboard-topbar">
     <div>
-      <div style="font-size:15px;font-weight:500;color:var(--text)">Dashboard — Mundial 2026</div>
+      <div style="font-size:15px;font-weight:500;color:var(--text)">Estadísticas — Mundial 2026</div>
       <div style="font-size:12px;color:var(--text-muted);margin-top:2px">Resumen ejecutivo · Bplay</div>
     </div>
     <div style="display:flex;gap:8px">
@@ -1347,9 +1347,9 @@ function renderTimeline(){
         <div class="tl-expand">
           <div class="match-score-wrap"></div>
           <div class="odds-section"><div class="odds-loading">Cargando cuotas...</div></div>
-          <div style="margin-top:12px;font-size:10px;font-weight:500;color:#5F5E5A;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Combo comercial</div>
+          <div style="margin-top:12px;font-size:10px;font-weight:500;color:#5F5E5A;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Acciones comerciales</div>
           ${buildComboDetail(id)}
-          <button class="tl-edit-btn" onclick="goEdit('${id}')">Editar combo →</button>
+          <button class="tl-edit-btn" onclick="goEdit('${id}')">Editar acciones →</button>
         </div>
       </div>`;
       strip.appendChild(item);
@@ -1502,10 +1502,10 @@ function updateSummary(){
   if(!activeId) return;
   const combo=getCombo(activeId);
   const total=Object.values(combo).reduce((a,v)=>a+v.length,0);
-  document.getElementById('comboTotal').textContent=total+' acción'+(total!==1?'es':'')+' en el combo';
+  document.getElementById('comboTotal').textContent=total+' acción'+(total!==1?'es':'')+' asignada'+(total!==1?'s':'');
   const area=document.getElementById('comboAllTags');
   const tags=['promo','push','boost','live'].flatMap(type=>combo[type].map(v=>`<span class="tag tag-${type}">${v}</span>`));
-  area.innerHTML=tags.length?tags.join(''):'<span class="combo-empty">El combo está vacío.</span>';
+  area.innerHTML=tags.length?tags.join(''):'<span class="combo-empty">Sin acciones asignadas.</span>';
 }
 
 function saveCombo(){
@@ -1843,27 +1843,22 @@ function renderAlerts(){
   if(!body) return;
   body.innerHTML='';
 
-  // Find all matches within next 7 days (and not yet started)
+  // Find all matches within next 15 days (and not yet started)
   const upcoming=[];
   ALL.forEach(m=>{
     const days=daysUntil(m.id);
     if(days===null) return;
-    if(days>=0 && days<=7) upcoming.push({...m,days});
+    if(days>=0 && days<=15) upcoming.push({...m,days});
   });
 
   // Sort by days asc
   upcoming.sort((a,b)=>a.days-b.days);
 
-  // Update badge
   const badge=document.getElementById('alert-badge');
   const unsent=upcoming.filter(m=>!tcSent[m.id]);
-  if(badge){
-    if(unsent.length>0){ badge.textContent=unsent.length; badge.style.display='inline'; }
-    else badge.style.display='none';
-  }
 
   if(upcoming.length===0){
-    body.innerHTML='<div class="alert-empty">No hay partidos en los próximos 7 días.</div>';
+    body.innerHTML='<div class="alert-empty">No hay partidos en los próximos 15 días.</div>';
     return;
   }
 
@@ -1872,7 +1867,7 @@ function renderAlerts(){
   bannerDiv.className='alert-banner';
   bannerDiv.innerHTML=`<div class="alert-banner-icon"></div>
     <div class="alert-banner-text">
-      <strong>${upcoming.length} partido${upcoming.length!==1?'s':''}</strong> en los próximos 7 días requieren envío de T&C a las loterías.
+      <strong>${upcoming.length} partido${upcoming.length!==1?'s':''}</strong> en los próximos 15 días requieren envío de T&C a las loterías.
       ${unsent.length>0?`<strong style="color:#A32D2D"> ${unsent.length} pendiente${unsent.length!==1?'s':''}.</strong>`:'<strong style="color:#085041"> Todos enviados.</strong>'}
     </div>`;
   body.appendChild(bannerDiv);
@@ -1892,9 +1887,35 @@ function renderAlerts(){
   if(thisWeek.length>0){
     const t=document.createElement('div');
     t.className='alert-section-title';
-    t.textContent='Próximos 7 días';
+    t.textContent='Próximos 15 días';
     body.appendChild(t);
     thisWeek.forEach(m=>body.appendChild(buildAlertRow(m)));
+  }
+
+  // Partidos sin acciones asignadas
+  const pendingActions=ALL.filter(m=>comboSize(m.id)===0).sort((a,b)=>{ const da=daysUntil(a.id)||999,db=daysUntil(b.id)||999; return da-db; }).slice(0,15);
+  if(pendingActions.length>0){
+    const sep=document.createElement('div');
+    sep.className='alert-section-title';
+    sep.style.marginTop='20px';
+    sep.innerHTML=`Partidos sin acciones asignadas <span style="color:var(--text-muted);font-weight:400;font-size:11px">(${pendingActions.length})</span>`;
+    body.appendChild(sep);
+    pendingActions.forEach(m=>{
+      const days=daysUntil(m.id);
+      const urgStyle=days!==null&&days<=3?'color:var(--coral)':days!==null&&days<=7?'color:var(--amber)':'color:var(--text-muted)';
+      const daysLbl=days===null?'':days===0?'Hoy':days===1?'Mañana':`${days}d`;
+      const row=document.createElement('div');
+      row.className='alert-row';
+      row.innerHTML=`<div class="alert-info"><div class="alert-match">${m.t}</div><div class="alert-meta">${m.day} · ${m.h.replace('*',' (+1d)')} hs · ${m.g}</div></div><span style="font-size:11px;${urgStyle};white-space:nowrap;flex-shrink:0">${daysLbl}</span><button class="alert-tc pending-tc" onclick="goEdit('${m.id}')">Asignar →</button>`;
+      body.appendChild(row);
+    });
+  }
+
+  // Update badge to include pending
+  if(badge){
+    const total=unsent.length+pendingActions.length;
+    if(total>0){ badge.textContent=total; badge.style.display='inline'; }
+    else badge.style.display='none';
   }
 }
 
@@ -2276,7 +2297,7 @@ function goEdit(id){
 }
 
 function resetAll(){
-  if(!confirm('Borrar los combos de TODOS los eventos?')) return;
+  if(!confirm('Borrar las acciones de TODOS los eventos?')) return;
   combos={};
   persist();
   renderTimeline();
@@ -2385,7 +2406,7 @@ function exportExcel(){
   XLSX.utils.book_append_sheet(wb, ws2, 'Detalle de acciones');
 
   // Sheet 3
-  const ws3 = XLSX.utils.aoa_to_sheet(alertRows.length > 1 ? alertRows : [alertRows[0],['Sin alertas en los próximos 7 días']]);
+  const ws3 = XLSX.utils.aoa_to_sheet(alertRows.length > 1 ? alertRows : [alertRows[0],['Sin alertas en los próximos 15 días']]);
   ws3['!cols'] = [{wch:18},{wch:10},{wch:32},{wch:14},{wch:14},{wch:12}];
   ['A1','B1','C1','D1','E1','F1'].forEach(cell=>{
     if(ws3[cell]) ws3[cell].s = headerStyle;
@@ -2594,7 +2615,7 @@ function renderDashboard(){
   const body = document.getElementById('dashboard-body');
   if(!body) return;
 
-  // ── Sports combos ──
+  // ── Acciones deportivas ──
   const total = ALL.length;
   const withCombo = ALL.filter(m => comboSize(m.id) > 0).length;
   const pct = total > 0 ? Math.round((withCombo/total)*100) : 0;
@@ -2619,7 +2640,7 @@ function renderDashboard(){
   const totalCasino = casinoActions.length;
 
   // ── T&C stats ──
-  const tcMatches = ALL.filter(m=>{ const d=daysUntil(m.id); return d!==null&&d>=0&&d<=7; });
+  const tcMatches = ALL.filter(m=>{ const d=daysUntil(m.id); return d!==null&&d>=0&&d<=15; });
   const tcSentCount = tcMatches.filter(m=>tcSent[m.id]).length;
   const tcPending = tcMatches.length - tcSentCount;
   const tcPct = tcMatches.length > 0 ? Math.round((tcSentCount/tcMatches.length)*100) : 100;
@@ -2629,20 +2650,16 @@ function renderDashboard(){
   const casinoPct = totalCasino > 0 ? Math.min(100, Math.round((totalCasino/20)*100)) : 0;
   const {filled:cf, empty:ce} = donutSegments(casinoPct, 44);
 
-  // ── Pending combos ──
-  const pendingMatches = ALL
-    .filter(m=>comboSize(m.id)===0)
-    .sort((a,b)=>{ const da=daysUntil(a.id)||999, db=daysUntil(b.id)||999; return da-db; })
-    .slice(0,10);
+
 
   body.innerHTML = `
 
     <!-- Row 1: 3 donuts -->
     <div class="dash-grid" style="margin-bottom:14px">
 
-      <!-- Combo coverage -->
+      <!-- Cobertura de acciones -->
       <div class="dash-card">
-        <div class="dash-card-title">Cobertura de combos</div>
+        <div class="dash-card-title">Cobertura de acciones</div>
         <div class="dash-donut-wrap">
           <div class="dash-donut">
             <svg width="108" height="108" viewBox="0 0 108 108">
@@ -2653,8 +2670,8 @@ function renderDashboard(){
             <div class="dash-donut-center"><span class="dash-donut-pct">${pct}%</span><span class="dash-donut-lbl">cubiertos</span></div>
           </div>
           <div class="dash-legend">
-            <div class="dash-legend-item"><div class="dash-legend-dot" style="background:#04F77C"></div>${withCombo} con combo</div>
-            <div class="dash-legend-item"><div class="dash-legend-dot" style="background:var(--border)"></div>${without} sin combo</div>
+            <div class="dash-legend-item"><div class="dash-legend-dot" style="background:#04F77C"></div>${withCombo} con acciones</div>
+            <div class="dash-legend-item"><div class="dash-legend-dot" style="background:var(--border)"></div>${without} sin acciones</div>
             <div class="dash-legend-item" style="margin-top:4px;color:var(--text);font-weight:500">${total} partidos</div>
           </div>
         </div>
@@ -2689,9 +2706,9 @@ function renderDashboard(){
 
       <!-- T&C donut -->
       <div class="dash-card">
-        <div class="dash-card-title">T&C próximos 7 días</div>
+        <div class="dash-card-title">T&C próximos 15 días</div>
         ${tcMatches.length === 0
-          ? `<div class="dash-sub" style="margin-top:12px;font-size:12px;color:var(--text-muted)">No hay partidos en los próximos 7 días.</div>`
+          ? `<div class="dash-sub" style="margin-top:12px;font-size:12px;color:var(--text-muted)">No hay partidos en los próximos 15 días.</div>`
           : `<div class="dash-donut-wrap">
               <div class="dash-donut">
                 <svg width="108" height="108" viewBox="0 0 108 108">
@@ -2753,23 +2770,7 @@ function renderDashboard(){
       </div>
     </div>
 
-    <!-- Row 3: Pending combos -->
-    ${pendingMatches.length > 0 ? `
-    <div class="dash-card">
-      <div class="dash-section-title">Partidos sin combo asignado <span style="color:var(--text-muted);font-weight:400;font-size:12px">(${without} total · más próximos primero)</span></div>
-      <div class="dash-pending-list">
-        ${pendingMatches.map(m=>{
-          const days = daysUntil(m.id);
-          const urgency = days !== null && days <= 3 ? 'color:var(--coral)' : days !== null && days <= 7 ? 'color:var(--amber)' : 'color:var(--text-muted)';
-          const daysLabel = days === null ? '' : days === 0 ? 'Hoy' : days === 1 ? 'Mañana' : `${days}d`;
-          return `<div class="dash-pending-item">
-            <span class="dash-pending-match">${m.t}</span>
-            <span class="dash-pending-date" style="${urgency}">${m.day}${daysLabel?' · '+daysLabel:''}</span>
-            <button class="dash-pending-edit" onclick="goEdit('${m.id}')">Asignar →</button>
-          </div>`;
-        }).join('')}
-      </div>
-    </div>` : `<div class="dash-card" style="text-align:center;padding:24px"><span style="font-size:24px">🎉</span><div style="margin-top:8px;font-size:13px;color:var(--text-muted)">Todos los partidos tienen combo asignado.</div></div>`}
+
   `;
 }
 
@@ -3054,7 +3055,7 @@ function backupData(){
 }
 
 function triggerRestore(){
-  if(!confirm('Restaurar un backup va a reemplazar todos los combos, T&C y acciones de casino actuales. ¿Continuar?')) return;
+  if(!confirm('Restaurar un backup va a reemplazar todos las acciones, T&C y acciones de casino actuales. ¿Continuar?')) return;
   document.getElementById('restore-input').click();
 }
 
@@ -3101,7 +3102,7 @@ function restoreData(input){
       renderCasino();
 
       const meta = data.meta || {};
-      alert(`Backup restaurado correctamente.\n\nFecha del backup: ${data.timestamp||'desconocida'}\nCombos: ${Object.keys(combos).length}\nAcciones casino: ${casinoActions.length}`);
+      alert(`Backup restaurado correctamente.\n\nFecha del backup: ${data.timestamp||'desconocida'}\nAcciones: ${Object.keys(combos).length}\nAcciones casino: ${casinoActions.length}`);
       setSyncStatus('ok');
     } catch(err) {
       alert('Error al leer el archivo: ' + err.message);
