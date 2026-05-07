@@ -1039,7 +1039,7 @@ try {
   db = firebase.database();
   auth = firebase.auth();
   provider = new firebase.auth.GoogleAuthProvider();
-  provider.setCustomParameters({hd: 'bplay.com.ar'});
+  // No domain hint — allow any Google account (domain check done in code)
   REF_COMBOS = db.ref('combos');
   REF_TC = db.ref('tcSent');
   firebaseReady = true;
