@@ -534,6 +534,7 @@
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 </head>
 <body>
 
@@ -1017,9 +1018,14 @@ function setSyncStatus(status){
   el.style.color = s.color;
 }
 
+let auth = null;
+let provider = null;
 try {
   firebase.initializeApp(firebaseConfig);
   db = firebase.database();
+  auth = firebase.auth();
+  provider = new firebase.auth.GoogleAuthProvider();
+  provider.setCustomParameters({hd: 'bplay.com.ar'});
   REF_COMBOS = db.ref('combos');
   REF_TC = db.ref('tcSent');
   firebaseReady = true;
@@ -3113,14 +3119,68 @@ function initTheme(){
 // Resize pizarra canvas on window resize
 window.addEventListener('resize', ()=>{ if(document.getElementById('view-pizarra')?.classList.contains('active')) renderPizarra(); });
 
+// ── AUTH ──
+function signInWithGoogle(){
+  const errEl=document.getElementById('login-error');
+  const loadEl=document.getElementById('login-loading');
+  if(!auth||!provider){ errEl.textContent='⚠ Firebase no disponible.'; errEl.style.display='block'; return; }
+  errEl.style.display='none'; loadEl.style.display='block';
+  auth.signInWithPopup(provider)
+    .then(result=>{
+      if(!result.user.email.endsWith('@bplay.com.ar')){
+        auth.signOut();
+        loadEl.style.display='none';
+        errEl.textContent='⚠ Solo se permite acceso con cuentas @bplay.com.ar';
+        errEl.style.display='block';
+      }
+    })
+    .catch(err=>{
+      loadEl.style.display='none';
+      errEl.textContent='⚠ Error: '+err.message;
+      errEl.style.display='block';
+    });
+}
+
+function signOut(){
+  if(confirm('¿Cerrar sesión?') && auth) auth.signOut();
+}
+
+function bootApp(){
+  initTheme();
+  load();
+  loadCasinoActions();
+  loadMatchNotes();
+  loadApprovals();
+  loadPizarra();
+}
+
+if(auth){
+  auth.onAuthStateChanged(user=>{
+    const loginScreen=document.getElementById('login-screen');
+    const chip=document.getElementById('user-chip');
+    const loadEl=document.getElementById('login-loading');
+    if(user && user.email.endsWith('@bplay.com.ar')){
+      if(loginScreen) loginScreen.classList.remove('active');
+      if(chip){ chip.style.display='flex';
+        document.getElementById('user-avatar').src=user.photoURL||'';
+        document.getElementById('user-name').textContent=user.displayName||user.email.split('@')[0];
+      }
+      if(loadEl) loadEl.style.display='none';
+      bootApp();
+    } else {
+      if(loginScreen) loginScreen.classList.add('active');
+      if(chip) chip.style.display='none';
+      if(user) auth.signOut();
+    }
+  });
+} else {
+  // Local mode — boot directly without auth
+  bootApp();
+}
+
 // Auto-refresh status every 30s
 setInterval(()=>{ renderTimeline(); renderAlerts(); renderDashboard(); }, 30000);
-// Boot — Firebase listeners or local fallback
-initTheme();
-load();
-loadCasinoActions();
-loadMatchNotes();
-loadApprovals();
+// Boot handled by onAuthStateChanged (or local fallback above)
 loadMatchNotes();
 loadApprovals();
 </script>
