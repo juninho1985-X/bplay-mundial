@@ -538,6 +538,20 @@
 </head>
 <body>
 
+<div id="login-screen" style="display:flex;position:fixed;inset:0;background:#0D0D0D;z-index:9999;align-items:center;justify-content:center">
+  <div style="background:#222;border:0.5px solid rgba(255,255,255,0.15);border-radius:12px;padding:36px 40px;width:340px;max-width:calc(100vw - 48px);text-align:center">
+    <div style="font-size:32px;margin-bottom:12px">🏆</div>
+    <div style="font-size:18px;font-weight:600;color:#fff;margin-bottom:4px">Roadmap Mundial 2026</div>
+    <div style="font-size:13px;color:#aaa;margin-bottom:24px">Ingresá con tu cuenta corporativa Bplay</div>
+    <button onclick="signInWithGoogle()" style="display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:11px 16px;border-radius:8px;border:0.5px solid rgba(255,255,255,0.2);background:#2A2A2A;color:#fff;font-size:14px;cursor:pointer;font-weight:500">
+      <svg width="20" height="20" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+      Continuar con Google
+    </button>
+    <div id="login-error" style="display:none;font-size:12px;color:#FF5C5C;margin-top:12px"></div>
+    <div id="login-loading" style="display:none;font-size:12px;color:#aaa;margin-top:12px">Verificando cuenta...</div>
+  </div>
+</div>
+
 <nav class="nav">
   <div class="nav-brand">
     <div style="font-size:22px;line-height:1;margin-right:4px">🏆</div>
@@ -3121,23 +3135,25 @@ window.addEventListener('resize', ()=>{ if(document.getElementById('view-pizarra
 
 // ── AUTH ──
 function signInWithGoogle(){
-  const errEl=document.getElementById('login-error');
-  const loadEl=document.getElementById('login-loading');
-  if(!auth||!provider){ errEl.textContent='⚠ Firebase no disponible.'; errEl.style.display='block'; return; }
-  errEl.style.display='none'; loadEl.style.display='block';
+  const err=document.getElementById('login-error');
+  const load=document.getElementById('login-loading');
+  if(!auth||!provider){
+    if(err){err.textContent='Firebase no disponible.';err.style.display='block';}
+    return;
+  }
+  if(err) err.style.display='none';
+  if(load) load.style.display='block';
   auth.signInWithPopup(provider)
     .then(result=>{
+      if(load) load.style.display='none';
       if(!result.user.email.endsWith('@bplay.com.ar')){
         auth.signOut();
-        loadEl.style.display='none';
-        errEl.textContent='⚠ Solo se permite acceso con cuentas @bplay.com.ar';
-        errEl.style.display='block';
+        if(err){err.textContent='Solo se permite acceso con cuentas @bplay.com.ar';err.style.display='block';}
       }
     })
-    .catch(err=>{
-      loadEl.style.display='none';
-      errEl.textContent='⚠ Error: '+err.message;
-      errEl.style.display='block';
+    .catch(e=>{
+      if(load) load.style.display='none';
+      if(err){err.textContent='Error: '+e.message;err.style.display='block';}
     });
 }
 
@@ -3155,45 +3171,34 @@ function bootApp(){
 }
 
 if(auth){
-  let booted = false;
-  // Show login screen after 4s if auth hasn't resolved
-  const authTimeout = setTimeout(()=>{
-    if(!booted){
-      const ls=document.getElementById('login-screen');
-      if(ls) ls.classList.add('active');
-    }
-  }, 4000);
-
   auth.onAuthStateChanged(user=>{
-    clearTimeout(authTimeout);
-    const loginScreen=document.getElementById('login-screen');
+    const ls=document.getElementById('login-screen');
     const chip=document.getElementById('user-chip');
-    const loadEl=document.getElementById('login-loading');
-    if(user && user.email.endsWith('@bplay.com.ar')){
-      booted = true;
-      if(loginScreen) loginScreen.classList.remove('active');
-      if(chip){ chip.style.display='flex';
-        document.getElementById('user-avatar').src=user.photoURL||'';
-        document.getElementById('user-name').textContent=user.displayName||user.email.split('@')[0];
+    if(user && user.email && user.email.endsWith('@bplay.com.ar')){
+      if(ls) ls.style.display='none';
+      if(chip){
+        chip.style.display='flex';
+        const av=document.getElementById('user-avatar');
+        const nm=document.getElementById('user-name');
+        if(av) av.src=user.photoURL||'';
+        if(nm) nm.textContent=user.displayName||user.email.split('@')[0];
       }
-      if(loadEl) loadEl.style.display='none';
       bootApp();
     } else {
-      if(loginScreen) loginScreen.classList.add('active');
+      if(ls) ls.style.display='flex';
       if(chip) chip.style.display='none';
       if(user) auth.signOut();
     }
   });
 } else {
-  // Local mode — boot directly without auth
+  const ls=document.getElementById('login-screen');
+  if(ls) ls.style.display='none';
   bootApp();
 }
 
 // Auto-refresh status every 30s
 setInterval(()=>{ renderTimeline(); renderAlerts(); renderDashboard(); }, 30000);
 // Boot handled by onAuthStateChanged (or local fallback above)
-loadMatchNotes();
-loadApprovals();
 </script>
 </body>
 </html>
