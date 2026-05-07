@@ -594,7 +594,7 @@
   </div>
   <div class="nav-actions">
     <div id="user-chip" style="display:none;align-items:center;gap:6px;font-size:12px;color:var(--text-muted);margin-right:4px">
-      <img id="user-avatar" src="" alt="" style="width:24px;height:24px;border-radius:50%;object-fit:cover;border:1.5px solid var(--bp-lime)">
+      <div id="user-avatar" style="width:26px;height:26px;border-radius:50%;background:var(--bp-lime);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#000;flex-shrink:0"></div>
       <span id="user-name" style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text)"></span>
       <button onclick="signOut()" style="font-size:11px;color:var(--text-hint);background:none;border:none;cursor:pointer;padding:2px 6px;border-radius:6px;border:0.5px solid var(--border-strong)">Salir</button>
     </div>
@@ -3342,7 +3342,11 @@ if(auth){
         chip.style.display='flex';
         const av=document.getElementById('user-avatar');
         const nm=document.getElementById('user-name');
-        if(av) av.src=user.photoURL||'';
+        if(av){
+          const name=user.displayName||user.email.split('@')[0];
+          const initials=name.split(/[.\s_-]/).map(p=>p[0]?.toUpperCase()||'').slice(0,2).join('');
+          av.textContent=initials||'?';
+        }
         if(nm) nm.textContent=user.displayName||user.email.split('@')[0];
       }
       bootApp();
