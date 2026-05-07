@@ -3155,11 +3155,22 @@ function bootApp(){
 }
 
 if(auth){
+  let booted = false;
+  // Show login screen after 4s if auth hasn't resolved
+  const authTimeout = setTimeout(()=>{
+    if(!booted){
+      const ls=document.getElementById('login-screen');
+      if(ls) ls.classList.add('active');
+    }
+  }, 4000);
+
   auth.onAuthStateChanged(user=>{
+    clearTimeout(authTimeout);
     const loginScreen=document.getElementById('login-screen');
     const chip=document.getElementById('user-chip');
     const loadEl=document.getElementById('login-loading');
     if(user && user.email.endsWith('@bplay.com.ar')){
+      booted = true;
       if(loginScreen) loginScreen.classList.remove('active');
       if(chip){ chip.style.display='flex';
         document.getElementById('user-avatar').src=user.photoURL||'';
