@@ -593,6 +593,11 @@
     <button class="nav-tab" onclick="switchView('dashboard', this)" data-view="dashboard">Estadísticas</button>
   </div>
   <div class="nav-actions">
+    <div id="user-chip" style="display:none;align-items:center;gap:6px;font-size:12px;color:var(--text-muted);margin-right:4px">
+      <img id="user-avatar" src="" alt="" style="width:24px;height:24px;border-radius:50%;object-fit:cover;border:1.5px solid var(--bp-lime)">
+      <span id="user-name" style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text)"></span>
+      <button onclick="signOut()" style="font-size:11px;color:var(--text-hint);background:none;border:none;cursor:pointer;padding:2px 6px;border-radius:6px;border:0.5px solid var(--border-strong)">Salir</button>
+    </div>
     <button class="theme-toggle" id="theme-btn" onclick="toggleTheme()" title="Cambiar modo">🌙</button>
     <div style="position:relative;margin:0 4px" id="global-search-wrap">
       <input type="text" id="global-search" placeholder="🔍 Buscar..." oninput="globalSearch(this.value)" onfocus="if(this.value.length>=2)document.getElementById('global-results').style.display='block'" style="font-size:12px;padding:5px 10px;border:0.5px solid var(--border-strong);border-radius:20px;background:var(--bp-surface);color:var(--text);width:180px;outline:none">
