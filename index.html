@@ -1645,14 +1645,12 @@ async function fetchAllOddsGames(){
   // Cascade: rich markets first, fall back to h2h only if empty (some books
   // price 1X2 long before O/U or BTTS for tournament matches).
   // Region cascade: eu first, then us (host region) as fallback.
-  // Note: `btts` requires a paid plan on The Odds API; on the free tier it
-  // makes the whole request fail. We try it first opportunistically (in case
-  // the plan gets upgraded) and fall back to h2h+totals (free-tier safe).
+  // Note: `btts` (Both Teams To Score) requires a paid plan on The Odds API.
+  // Removed from cascade to save quota — re-add `&markets=h2h,totals,btts`
+  // attempts here if you upgrade the plan.
   const attempts = [
-    {url:`${base}&regions=eu&markets=h2h,totals,btts`, label:'eu·h2h+totals+btts'},
     {url:`${base}&regions=eu&markets=h2h,totals`,      label:'eu·h2h+totals'},
     {url:`${base}&regions=eu&markets=h2h`,             label:'eu·h2h'},
-    {url:`${base}&regions=us&markets=h2h,totals,btts`, label:'us·h2h+totals+btts'},
     {url:`${base}&regions=us&markets=h2h,totals`,      label:'us·h2h+totals'},
     {url:`${base}&regions=us&markets=h2h`,             label:'us·h2h'},
   ];
