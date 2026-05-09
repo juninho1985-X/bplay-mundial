@@ -1600,33 +1600,17 @@ function saveApiKey(){
   oddsApiKey = val;
   localStorage.setItem(ODDS_API_KEY_STORAGE, val);
   oddsCache = {};
+  _allOddsGames = null; _allOddsTs = 0; _allOddsInflight = null;
   document.getElementById('api-status').textContent = 'Guardada correctamente.';
   setTimeout(closeApiConfig, 800);
 }
 
-// Normalize team name to match Odds API naming
+// Normalize a Spanish team name to its English form (as returned by The Odds API).
+// Uses TEAM_NAME_MAP (the single source of truth) instead of duplicating the table.
+// TEAM_NAME_MAP is declared further below; that's fine because this function is
+// only called at runtime (on card expansion), well after the script finishes loading.
 function normalizeName(name){
-  const map = {
-    'Argentina':'Argentina','Brasil':'Brazil','México':'Mexico','Uruguay':'Uruguay',
-    'Colombia':'Colombia','Ecuador':'Ecuador','Paraguay':'Paraguay',
-    'España':'Spain','Francia':'France','Alemania':'Germany','Inglaterra':'England',
-    'Portugal':'Portugal','Países Bajos':'Netherlands','Bélgica':'Belgium',
-    'Croacia':'Croatia','Noruega':'Norway','Suecia':'Sweden','Suiza':'Switzerland',
-    'Austria':'Austria','Rep. Checa':'Czech Republic','Bosnia':'Bosnia and Herzegovina',
-    'Turquía':'Turkey','Escocia':'Scotland','Corea del Sur':'South Korea',
-    'Japón':'Japan','Arabia Saudita':'Saudi Arabia','Irán':'Iran',
-    'Marruecos':'Morocco','Senegal':'Senegal','Egipto':'Egypt','Ghana':'Ghana',
-    'Costa de Marfil':'Ivory Coast','Argelia':'Algeria','Túnez':'Tunisia',
-    'Sudáfrica':'South Africa','Cabo Verde':'Cape Verde','RD Congo':'DR Congo',
-    'Haití':'Haiti','Escocia':'Scotland','Irak':'Iraq',
-    'Uzbekistán':'Uzbekistan','Jordania':'Jordan','Qatar':'Qatar',
-    'Canadá':'Canada','Panamá':'Panama','Curazao':'Curacao',
-    'Australia':'Australia','Nueva Zelanda':'New Zealand','Cabo Verde':'Cape Verde'
-  };
-  for(const [es, en] of Object.entries(map)){
-    if(name.includes(es)) return en;
-  }
-  return name;
+  return TEAM_NAME_MAP[name] || name;
 }
 
 // Shared cache for the full WC games list — one API hit serves all match expansions.
@@ -1838,7 +1822,7 @@ function renderOddsSection(id, container){
       <div style="display:flex;gap:4px;margin-bottom:10px">
         <button class="odds-tab active" id="tab-h2h-${uid}" onclick="showOddsTab('${uid}','h2h')">Resultado 1X2</button>
         <button class="odds-tab" id="tab-totals-${uid}" onclick="showOddsTab('${uid}','totals')">Más/Menos goles</button>
-        <button class="odds-tab" id="tab-btts-${uid}" onclick="showOddsTab('${uid}','btts')">Ambos anotan</button>
+        ${btts.length ? `<button class="odds-tab" id="tab-btts-${uid}" onclick="showOddsTab('${uid}','btts')">Ambos anotan</button>` : ''}
       </div>
 
       <!-- H2H panel -->
@@ -1880,7 +1864,7 @@ function renderOddsSection(id, container){
       </div>
 
       <!-- BTTS panel -->
-      <div id="panel-btts-${uid}" style="display:none">
+      ${btts.length ? `<div id="panel-btts-${uid}" style="display:none">
         <div class="odds-grid" style="margin-bottom:8px;grid-template-columns:1fr 1fr">
           <div class="odds-cell"><div class="ol">Ambos anotan (Sí)</div><div class="ov best">${bestYes?bestYes.toFixed(2):'—'}</div></div>
           <div class="odds-cell"><div class="ol">Ninguno anota (No)</div><div class="ov best">${bestNo?bestNo.toFixed(2):'—'}</div></div>
@@ -1893,9 +1877,9 @@ function renderOddsSection(id, container){
               <span style="min-width:36px;text-align:center">No</span>
             </div>
           </div>
-          ${bttsRows||'<div class="odds-error">Sin datos</div>'}
+          ${bttsRows}
         </div>
-      </div>
+      </div>` : ''}
 
       <div style="font-size:10px;color:var(--text-hint);margin-top:8px">Mejor cuota en verde · Fuente: The Odds API</div>`;
   });
@@ -1912,6 +1896,9 @@ function showOddsTab(uid, market){
 
 function invalidateOdds(id){
   delete oddsCache[id];
+  // Also drop the shared games cache so this triggers a real API re-fetch,
+  // not a re-read of stale data.
+  _allOddsGames = null; _allOddsTs = 0; _allOddsInflight = null;
   // Re-render the open card
   const cards = document.querySelectorAll('.tl-card.expanded');
   cards.forEach(card=>{
@@ -2578,7 +2565,7 @@ const TEAM_NAME_MAP = {
   'Cabo Verde':'Cape Verde','RD Congo':'DR Congo','Haití':'Haiti',
   'Uzbekistán':'Uzbekistan','Canadá':'Canada','Panamá':'Panama',
   'Curazao':'Curacao','Australia':'Australia','Nueva Zelanda':'New Zealand',
-  'Estados Unidos':'United States','Escocia':'Scotland',
+  'Estados Unidos':'United States',
 };
 
 function getFlag(name){
@@ -3228,10 +3215,6 @@ function globalSearch(q){
   const view=getCurrentView();
   if(view==='timeline') renderTimeline();
   else switchView('timeline',document.querySelector('[data-view=timeline]'));
-}
-function getCurrentView(){
-  const a=document.querySelector('.view.active');
-  return a?a.id.replace('view-',''):'timeline';
 }
 
 function showHistory(){
