@@ -1629,6 +1629,62 @@ function normalizeName(name){
   return name;
 }
 
+// Shared cache for the full WC games list — one API hit serves all match expansions.
+let _allOddsGames = null;
+let _allOddsTs = 0;
+let _allOddsInflight = null;
+
+async function fetchAllOddsGames(){
+  if(_allOddsGames && Date.now()-_allOddsTs < ODDS_TTL) return _allOddsGames;
+  if(_allOddsInflight) return _allOddsInflight;
+
+  // Verified valid sport key (confirmed against /v4/sports/ endpoint).
+  const sport = 'soccer_fifa_world_cup';
+  const base = `https://api.the-odds-api.com/v4/sports/${sport}/odds/?apiKey=${oddsApiKey}&oddsFormat=decimal`;
+
+  // Cascade: rich markets first, fall back to h2h only if empty (some books
+  // price 1X2 long before O/U or BTTS for tournament matches).
+  // Region cascade: eu first, then us (host region) as fallback.
+  // Note: `btts` requires a paid plan on The Odds API; on the free tier it
+  // makes the whole request fail. We try it first opportunistically (in case
+  // the plan gets upgraded) and fall back to h2h+totals (free-tier safe).
+  const attempts = [
+    {url:`${base}&regions=eu&markets=h2h,totals,btts`, label:'eu·h2h+totals+btts'},
+    {url:`${base}&regions=eu&markets=h2h,totals`,      label:'eu·h2h+totals'},
+    {url:`${base}&regions=eu&markets=h2h`,             label:'eu·h2h'},
+    {url:`${base}&regions=us&markets=h2h,totals,btts`, label:'us·h2h+totals+btts'},
+    {url:`${base}&regions=us&markets=h2h,totals`,      label:'us·h2h+totals'},
+    {url:`${base}&regions=us&markets=h2h`,             label:'us·h2h'},
+  ];
+
+  _allOddsInflight = (async ()=>{
+    for(const {url,label} of attempts){
+      try{
+        const res = await fetch(url);
+        const remaining = res.headers.get('x-requests-remaining');
+        const used = res.headers.get('x-requests-used');
+        if(res.status===401){ console.warn('[odds] 401 — API key inválida'); return {error:'auth'}; }
+        if(res.status===429){ console.warn('[odds] 429 — quota mensual excedida'); return {error:'quota'}; }
+        if(res.status===422){ console.warn('[odds] 422 — combinación inválida en', label); continue; }
+        if(!res.ok){ console.warn('[odds] HTTP',res.status,'en',label); continue; }
+        const data = await res.json();
+        console.log(`[odds] ${label} → ${data.length} eventos (quota usada: ${used}, restante: ${remaining})`);
+        if(Array.isArray(data) && data.length>0){
+          _allOddsGames = data; _allOddsTs = Date.now();
+          return data;
+        }
+      }catch(e){ console.warn('[odds] fetch error en',label,e.message); }
+    }
+    console.warn('[odds] ningún intento devolvió eventos — el sport key existe pero no hay markets disponibles aún');
+    return {error:'no_events'};
+  })();
+
+  const result = await _allOddsInflight;
+  _allOddsInflight = null;
+  if(Array.isArray(result)) return result;
+  return null;
+}
+
 async function fetchOdds(matchId){
   const m = ALL.find(x=>x.id===matchId);
   if(!m || m.tags.includes('ko')) return null; // skip knockout placeholders
@@ -1636,21 +1692,7 @@ async function fetchOdds(matchId){
   const cached = oddsCache[matchId];
   if(cached && Date.now()-cached.ts < ODDS_TTL) return cached.data;
 
-  // Try multiple possible sport keys for World Cup 2026
-  const sportKeys = ['soccer_fifa_world_cup','soccer_fifa_world_cup_2026','soccer_world_cup_2026'];
-  let games = null;
-  let usedKey = null;
-
-  for(const sport of sportKeys){
-    try{
-      const url = `https://api.the-odds-api.com/v4/sports/${sport}/odds/?apiKey=${oddsApiKey}&regions=eu&markets=h2h,totals,btts&oddsFormat=decimal`;
-      const res = await fetch(url);
-      if(res.status===404) continue;
-      if(!res.ok) continue;
-      const data = await res.json();
-      if(Array.isArray(data) && data.length > 0){ games=data; usedKey=sport; break; }
-    }catch(e){ continue; }
-  }
+  const games = await fetchAllOddsGames();
 
   try{
     if(!games){
